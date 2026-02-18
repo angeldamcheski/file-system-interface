@@ -1,15 +1,29 @@
 // fakeApi.js
-
+/*
+   
+      */
 export const fileSystem = {
   root: {
-    folders: ["2026", "2025"],
+    folders: [
+      {
+        name: "2026",
+        folderType: "videos",
+      },
+      {
+        name: "2025",
+        folderType: "documents",
+      },
+    ],
     files: ["readme.txt", "config.json"],
   },
 
   "2026": {
-    folders: ["Jan", "Feb"],
+    folders: [
+      { name: "Jan", folderType: "documents" },
+      { name: "Feb", folderType: "documents" },
+    ],
     files: ["report2026.pdf"],
-  },  
+  },
 
   "2026/Jan": {
     folders: [],
@@ -22,7 +36,7 @@ export const fileSystem = {
   },
 
   "2025": {
-    folders: ["March"],
+    folders: [{ name: "March", folderType: "documents" }],
     files: ["summary2025.csv"],
   },
 
