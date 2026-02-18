@@ -61,24 +61,24 @@ const FileManager = () => {
     switch (extension) {
       case "xlsx":
         return (
-          <FileExcelOutlined style={{ color: "#4ade80", fontSize: "16px" }} />
+          <FileExcelOutlined style={{ color: "#16a34a", fontSize: "16px" }} />
         );
 
       case "pdf":
         return (
-          <FilePdfOutlined style={{ color: "#ef4444", fontSize: "16px" }} />
+          <FilePdfOutlined style={{ color: "#dc2626", fontSize: "16px" }} />
         );
 
       case "docx":
         return (
-          <FileWordOutlined style={{ color: "#0ea5e9", fontSize: "16px" }} />
+          <FileWordOutlined style={{ color: "#2563eb", fontSize: "16px" }} />
         );
 
       case "csv":
         return <FileOutlined />;
 
       case "json":
-        return <CodeOutlined style={{ color: "#f59e0b", fontSize: "16px" }} />;
+        return <CodeOutlined style={{ color: "#d97706", fontSize: "16px" }} />;
 
       case "txt":
         return <FileTextOutlined style={{ fontSize: "16px" }} />;
@@ -185,7 +185,7 @@ const FileManager = () => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto p-6 bg-neutral-50 border border-slate-200 rounded-md shadow-md">
+    <div className="max-w-6xl mx-auto  p-6 bg-neutral-50 border border-slate-200 rounded-md shadow-md">
       <h2 className="text-2xl font-semibold mb-4">File Manager</h2>
       <div
         className={`flex transition-all duration-500 ease-in-out border border-slate-200 rounded-md overflow-hidden  ${isStacked ? "flex-col" : "flex-col md:flex-row"}`}
@@ -240,6 +240,7 @@ const FileManager = () => {
           <div className="p-3 flex justify-end border-b border-slate-200 border-t-slate-200">
             <Space className="border border-slate-200 rounded-md px-2 py-1 bg-white">
               <Button
+                type="text"
                 icon={
                   isSidebarVisible ? (
                     <MenuFoldOutlined />
@@ -251,6 +252,8 @@ const FileManager = () => {
               >
                 {isSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
               </Button>
+              <div className="w-[1px] h-4 bg-slate-200" />
+
               <Button type="text" icon={<PlusOutlined />}>
                 Add Folder
               </Button>
@@ -278,7 +281,7 @@ const FileManager = () => {
               pagination={false}
               rowKey="path"
               locale={{ emptyText: "No files in this folder" }}
-              className="hover:cursor-pointer text-wrap"
+              className="hover:cursor-pointer text-wrap "
             />
           </Spin>
         </div>
