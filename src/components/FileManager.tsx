@@ -4,6 +4,8 @@ import {
   DeleteOutlined,
   PlusOutlined,
   FileOutlined,
+  ColumnHeightOutlined,
+  ColumnWidthOutlined,
 } from "@ant-design/icons";
 import {
   fetchFiles,
@@ -42,6 +44,7 @@ const FileManager = () => {
   };
 
   const [selectedPath, setSelectedPath] = useState("root");
+  const [isStacked, setIsStacked] = useState(false);
 
   const { data: rootFolders = [] } = useQuery({
     queryKey: ["folders", "root"],
@@ -72,7 +75,6 @@ const FileManager = () => {
     })) || [];
   const tableData = [...folders, ...files];
   const treeData = buildTree("root");
-  console.log(folders, files);
 
   const handleBreadCrumbs = (index: number) => {
     const parts = [
@@ -116,12 +118,18 @@ const FileManager = () => {
   return (
     <div className="max-w-6xl mx-auto p-6 bg-neutral-50 border border-slate-200 rounded-md shadow-md">
       <h2 className="text-2xl font-semibold mb-4">File Manager</h2>
-      <div className="flex border border-slate-200 rounded-md overflow-hidden">
+      <div
+        className={`flex transition-all duration-300 border border-slate-200 rounded-md overflow-hidden  ${isStacked ? "flex-col" : "flex-col md:flex-row"}`}
+      >
         {/* Left Div */}
-        <div className="w-1/3 border-r border-slate-200 bg-white  p-4 min-h-[500px]">
+        <div
+          className={`w-full ${isStacked ? "w-full" : "w-full md:w-1/3"} border-r border-slate-200 bg-white  p-4 min-h-[500px]`}
+        >
           <div className="flex items-center gap-2 mb-4 p-2 bg-blue-50 text-blue-600 rounded">
             <FolderOutlined />{" "}
-            <span className="font-semibold text-black">Root</span>
+            <span className="font-semibold text-black">
+              Root/{selectedPath === "root" ? "" : selectedPath}
+            </span>
           </div>
           <Tree
             treeData={treeData}
@@ -134,7 +142,9 @@ const FileManager = () => {
           />
         </div>
         {/* Right Div */}
-        <div className="w-2/3 flex flex-col">
+        <div
+          className={`w-full ${isStacked ? "w-full" : "w-full md:w-2/3"}  flex flex-col`}
+        >
           <div className="p-3 border-b border-slate-200 bg-white flex justify-between items-center">
             <Breadcrumb
               items={[
@@ -161,6 +171,16 @@ const FileManager = () => {
               <div className="w-[1px] h-4 bg-slate-200" />
               <Button type="text" icon={<EditOutlined />} />
               <Button type="text" icon={<DeleteOutlined />} />
+              <div className="w-[1px] h-4 bg-slate-200" />
+              <Button
+                type="text"
+                onClick={() => setIsStacked((prev) => !prev)}
+                icon={
+                  isStacked ? <ColumnWidthOutlined /> : <ColumnHeightOutlined />
+                }
+              >
+                Toggle Layout
+              </Button>
             </Space>
           </div>
 
@@ -176,7 +196,7 @@ const FileManager = () => {
                 },
               })}
               locale={{ emptyText: "No files in this folder" }}
-              className="hover:cursor-pointer"
+              className="hover:cursor-pointer text-wrap"
             />
           </Spin>
         </div>
