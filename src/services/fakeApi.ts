@@ -9,7 +9,7 @@ export const fileSystem = {
   "2026": {
     folders: ["Jan", "Feb"],
     files: ["report2026.pdf"],
-  },
+  },  
 
   "2026/Jan": {
     folders: [],
