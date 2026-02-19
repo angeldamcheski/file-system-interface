@@ -15,25 +15,29 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
-import {
-  fetchFiles,
-  fetchFolderContent,
-  fetchFolders,
-} from "../services/fileManagerService";
+import { fetchFolderContent } from "../api/apiCall";
 import { Tree, Breadcrumb, Table, Button, Space, Spin, Popover } from "antd";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { fileSystem } from "../services/fakeApi";
+import type { FolderContentDTO } from "../types/FileManagerTypes";
 
 const FileManager = () => {
   const [isSidebarVisible, setIsSideBarVisible] = useState(true);
   const [selectedPath, setSelectedPath] = useState("root");
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isStacked, setIsStacked] = useState(false);
+  const [treeData, setTreeData] = useState<any[]>([]);
+  const [currentFolder, setCurrentFolder] = useState<{
+    id: string | null;
+    name: string;
+    path: string;
+  }>({ id: null, name: "Root", path: "root" });
   const getFolderPopOverContent = (folderName: string, path: string) => (
     <div className="p-1">
       <p>
         <strong>Path: </strong>
-        {path}
+        {}
       </p>
       <p className="text-xs text-gray-500">
         Click to view contents of {folderName}
@@ -119,36 +123,6 @@ const FileManager = () => {
     ];
   };
 
-  const { data: rootFolders = [] } = useQuery({
-    queryKey: ["folders", "root"],
-    queryFn: () => fetchFolders("root"),
-  });
-  const { data: rootFiles = [] } = useQuery({
-    queryKey: ["files", "root"],
-    queryFn: () => fetchFiles("root"),
-  });
-  const { data, isLoading } = useQuery({
-    queryKey: ["folderContent", selectedPath],
-    queryFn: () => fetchFolderContent(selectedPath),
-  });
-  const folders =
-    data?.folders.map((name: string) => ({
-      name,
-      path: selectedPath === "root" ? name : `${selectedPath}/${name}`,
-      type: "folder",
-    })) || [];
-
-  const files =
-    data?.files.map((name: string) => ({
-      name,
-      path: `${selectedPath}/${name}`,
-      type: "file",
-      size: Math.floor(Math.random() * 5000) + "kb",
-      modified: new Date().toISOString(),
-    })) || [];
-  const tableData = [...files];
-  const treeData = buildTree("root");
-
   const handleBreadCrumbs = (index: number) => {
     const parts = [
       "root",
@@ -184,6 +158,51 @@ const FileManager = () => {
     },
   ];
 
+  // DATA FROM FILENET
+
+  const { data, isLoading } = useQuery<FolderContentDTO>({
+    queryKey: ["folderContent", selectedFolderId ?? "root"],
+    queryFn: () => fetchFolderContent(selectedFolderId ?? null),
+    placeholderData: (previousData) => previousData,
+  });
+  const ibmFolders = data?.folders ?? [];
+  const ibmFiles = data?.files ?? [];
+  const tableData = [...ibmFiles];
+
+  useEffect(() => {
+    if (treeData.length === 0) {
+      setTreeData([
+        {
+          title: "Root",
+          key: "root",
+          isLeaf: false,
+        },
+      ]);
+    }
+  }, []);
+  const updateTreeData = (
+    list: any[],
+    key: React.Key,
+    children: any[],
+  ): any[] => {
+    return list.map((node) => {
+      if (node.key === key) {
+        return {
+          ...node,
+          children,
+        };
+      }
+
+      if (node.children) {
+        return {
+          ...node,
+          children: updateTreeData(node.children, key, children),
+        };
+      }
+
+      return node;
+    });
+  };
   return (
     <div className="max-w-6xl mx-auto  p-6 bg-neutral-50 border border-slate-200 rounded-md shadow-md">
       <h2 className="text-2xl font-semibold mb-4">File Manager</h2>
@@ -204,9 +223,28 @@ const FileManager = () => {
             </div>
             <Tree
               treeData={treeData}
-              selectedKeys={[selectedPath]}
+              loadData={async (node) => {
+                if (node.children) return;
+                const folderId = node.key === "root" ? null : node.key;
+                console.log("Tree data", folderId);
+
+                const response = await fetchFolderContent(folderId);
+                const children = response.folders.map((folder) => ({
+                  title: folder.name,
+                  key: folder.id,
+                  isLeaf: false,
+                }));
+                setTreeData((origin) =>
+                  updateTreeData(origin, node.key, children),
+                );
+              }}
+              selectedKeys={[selectedFolderId ?? "root"]}
               onSelect={(keys) => {
-                if (keys.length) setSelectedPath(keys[0] as string);
+                if (!keys.length) return;
+                const selectedKey = keys[0] as string;
+                setSelectedFolderId(
+                  selectedKey === "root" ? null : selectedKey,
+                );
               }}
               showIcon
               expandAction="click"
