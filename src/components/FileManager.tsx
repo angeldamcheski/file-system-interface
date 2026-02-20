@@ -3,15 +3,8 @@ import {
   EditOutlined,
   DeleteOutlined,
   PlusOutlined,
-  FileOutlined,
   ColumnHeightOutlined,
   ColumnWidthOutlined,
-  VideoCameraOutlined,
-  FileExcelOutlined,
-  FileWordOutlined,
-  FilePdfOutlined,
-  CodeOutlined,
-  FileTextOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
@@ -21,6 +14,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { fileSystem } from "../services/fakeApi";
 import type { FolderContentDTO } from "../types/FileManagerTypes";
+import {
+  getFolderIcon,
+  getFileIcon,
+  getBreadCrumbsPath,
+  findNodeByPath,
+} from "../utils/fileManagerUtils";
 
 const FileManager = () => {
   const [isSidebarVisible, setIsSideBarVisible] = useState(true);
@@ -28,11 +27,6 @@ const FileManager = () => {
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isStacked, setIsStacked] = useState(false);
   const [treeData, setTreeData] = useState<any[]>([]);
-  const [currentFolder, setCurrentFolder] = useState<{
-    id: string | null;
-    name: string;
-    path: string;
-  }>({ id: null, name: "Root", path: "root" });
   const getFolderPopOverContent = (folderName: string, path: string) => (
     <div className="p-1">
       <p>
@@ -44,53 +38,6 @@ const FileManager = () => {
       </p>
     </div>
   );
-  const getFolderIcon = (type?: string) => {
-    switch (type) {
-      case "videos":
-        return (
-          <VideoCameraOutlined style={{ color: "#4f46e5", fontSize: "16px" }} />
-        );
-      case "documents":
-        return (
-          <FolderOutlined style={{ color: "#3b82f6", fontSize: "16px" }} />
-        );
-      default:
-        return (
-          <FolderOutlined style={{ color: "#8b5cf6", fontSize: "16px" }} />
-        );
-    }
-  };
-  const getFileIcon = (fileName?: string) => {
-    const extension = fileName?.split(".")[1];
-    switch (extension) {
-      case "xlsx":
-        return (
-          <FileExcelOutlined style={{ color: "#16a34a", fontSize: "16px" }} />
-        );
-
-      case "pdf":
-        return (
-          <FilePdfOutlined style={{ color: "#dc2626", fontSize: "16px" }} />
-        );
-
-      case "docx":
-        return (
-          <FileWordOutlined style={{ color: "#2563eb", fontSize: "16px" }} />
-        );
-
-      case "csv":
-        return <FileOutlined />;
-
-      case "json":
-        return <CodeOutlined style={{ color: "#d97706", fontSize: "16px" }} />;
-
-      case "txt":
-        return <FileTextOutlined style={{ fontSize: "16px" }} />;
-
-      default:
-        return <FileOutlined style={{ fontSize: "16px" }} />;
-    }
-  };
   const buildTree = (path: string): any[] => {
     const data = fileSystem[path];
     if (!data) return [];
@@ -116,22 +63,12 @@ const FileManager = () => {
           const childPath =
             path === "root" ? folder.name : `${path}/${folder.name}`;
           const node = buildTree(childPath)[0];
-
           return { ...node, icon: getFolderIcon(folder.folderType) };
         }),
       },
     ];
   };
 
-  const handleBreadCrumbs = (index: number) => {
-    const parts = [
-      "root",
-      ...selectedPath.split("/").filter((p) => p !== "root"),
-    ];
-    const newPath = parts.slice(0, index + 1).join("/");
-
-    setSelectedPath(newPath === "root" ? "root" : newPath.replace("root/", ""));
-  };
   const columns = [
     {
       title: "Name",
@@ -157,7 +94,13 @@ const FileManager = () => {
       render: (date: string) => new Date(date).toLocaleString(),
     },
   ];
-
+  const onBreadCrumbClick = (index: number) => {
+    const newPath = getBreadCrumbsPath(selectedPath, index);
+    const node = findNodeByPath(treeData, newPath);
+    if (!node) return;
+    setSelectedPath(newPath);
+    setSelectedFolderId(node.key === "root" ? null : node.key);
+  };
   // DATA FROM FILENET
 
   const { data, isLoading } = useQuery<FolderContentDTO>({
@@ -175,7 +118,9 @@ const FileManager = () => {
         {
           title: "Root",
           key: "root",
+          IdFolder: null,
           isLeaf: false,
+          path: "root",
         },
       ]);
     }
@@ -226,25 +171,33 @@ const FileManager = () => {
               loadData={async (node) => {
                 if (node.children) return;
                 const folderId = node.key === "root" ? null : node.key;
-                console.log("Tree data", folderId);
 
                 const response = await fetchFolderContent(folderId);
                 const children = response.folders.map((folder) => ({
                   title: folder.name,
                   key: folder.id,
+                  IdFolder: folder.id,
                   isLeaf: false,
+                  icon: getFolderIcon(folder.type),
+                  path:
+                    node.key === "root"
+                      ? folder.name
+                      : `${node.path}/${folder.name}`,
                 }));
+
                 setTreeData((origin) =>
                   updateTreeData(origin, node.key, children),
                 );
               }}
               selectedKeys={[selectedFolderId ?? "root"]}
-              onSelect={(keys) => {
+              onSelect={(keys, info) => {
                 if (!keys.length) return;
                 const selectedKey = keys[0] as string;
                 setSelectedFolderId(
                   selectedKey === "root" ? null : selectedKey,
                 );
+                const nodePath = (info.node as any).path ?? "root";
+                setSelectedPath(nodePath);
               }}
               showIcon
               expandAction="click"
@@ -253,7 +206,6 @@ const FileManager = () => {
           </div>
         )}
         {/* Right Div */}
-        {/* ${isStacked ? "w-full" : "w-full md:w-2/3"} ${!isSidebarVisible ? "w-full" : "w-full md:w-2/3"} */}
         <div
           className={`w-full ${!isSidebarVisible ? "w-full" : isStacked ? "w-full" : "w-full md:w-2/3"} flex flex-col`}
         >
@@ -266,7 +218,7 @@ const FileManager = () => {
                 title: (
                   <span
                     className="cursor-pointer hover: text-blue-500 transition-colors"
-                    onClick={() => handleBreadCrumbs(index)}
+                    onClick={() => onBreadCrumbClick(index)}
                   >
                     {part === "root" ? "Root" : part}
                   </span>
@@ -317,7 +269,7 @@ const FileManager = () => {
               dataSource={tableData}
               columns={columns}
               pagination={false}
-              rowKey="path"
+              rowKey="id"
               locale={{ emptyText: "No files in this folder" }}
               className="hover:cursor-pointer text-wrap "
             />
