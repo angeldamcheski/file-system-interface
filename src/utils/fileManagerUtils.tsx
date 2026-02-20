@@ -8,9 +8,8 @@ import {
   CodeOutlined,
   FileTextOutlined,
 } from "@ant-design/icons";
-import { Popover } from "antd";
 import React from "react";
-
+import type TreeNode from "../types/TreeNode";
 export const getFolderIcon = (type?: string) => {
   switch (type) {
     case "videos":
@@ -20,7 +19,7 @@ export const getFolderIcon = (type?: string) => {
     case "documents":
       return <FolderOutlined style={{ color: "#3b82f6", fontSize: "16px" }} />;
     default:
-      return <FolderOutlined style={{ color: "#8b5cf6", fontSize: "16px" }} />;
+      return <FolderOutlined style={{ color: "#3b82f6", fontSize: "16px" }} />;
   }
 };
 
@@ -55,10 +54,10 @@ export const getFileIcon = (fileName?: string) => {
 };
 
 export const updateTreeData = (
-  list: any[],
+  list: TreeNode[],
   key: React.Key,
-  children: any[],
-): any[] => {
+  children: TreeNode[],
+): TreeNode[] => {
   return list.map((node) => {
     if (node.key === key) {
       return {
@@ -106,7 +105,10 @@ export const getBreadCrumbsPath = (
   return newPath === "root" ? "root" : newPath.replace("root/", "");
 };
 
-export const findNodeByPath = (nodes: any[], path: string): any | null => {
+export const findNodeByPath = (
+  nodes: TreeNode[],
+  path: string,
+): TreeNode | null => {
   for (const node of nodes) {
     if (node.path === path) return node;
     if (node.children) {

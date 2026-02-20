@@ -11,7 +11,7 @@ import {
 import { fetchFolderContent } from "../api/apiCall";
 import { Tree, Breadcrumb, Table, Button, Space, Spin, Popover } from "antd";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { fileSystem } from "../services/fakeApi";
 import type { FolderContentDTO } from "../types/FileManagerTypes";
 import {
@@ -20,14 +20,22 @@ import {
   getBreadCrumbsPath,
   findNodeByPath,
 } from "../utils/fileManagerUtils";
-
+import type TreeNode from "../types/TreeNode";
 const FileManager = () => {
   const [isSidebarVisible, setIsSideBarVisible] = useState(true);
   const [selectedPath, setSelectedPath] = useState("root");
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isStacked, setIsStacked] = useState(false);
-  const [treeData, setTreeData] = useState<any[]>([]);
-  const getFolderPopOverContent = (folderName: string, path: string) => (
+  const [treeData, setTreeData] = useState<TreeNode[]>([
+    {
+      title: "Root",
+      key: "root",
+      IdFolder: null,
+      isLeaf: false,
+      path: "root",
+    },
+  ]);
+  const getFolderPopOverContent = (folderName: string) => (
     <div className="p-1">
       <p>
         <strong>Path: </strong>
@@ -38,7 +46,7 @@ const FileManager = () => {
       </p>
     </div>
   );
-  const buildTree = (path: string): any[] => {
+  const buildTree = (path: string): TreeNode[] => {
     const data = fileSystem[path];
     if (!data) return [];
 
@@ -50,21 +58,23 @@ const FileManager = () => {
             placement="right"
             mouseEnterDelay={0.5}
             content={getFolderPopOverContent(
-              path === "root" ? "Root" : path.split("/").pop(),
-              path,
+              path === "root" ? "Root" : (path.split("/").pop() ?? "Folder"),
             )}
           >
             <span>{path === "root" ? "Root" : path.split("/").pop()}</span>
           </Popover>
         ),
         key: path,
+        path: path,
         icon: getFolderIcon(path === "root" ? undefined : "documents"),
-        children: data.folders.map((folder: any) => {
-          const childPath =
-            path === "root" ? folder.name : `${path}/${folder.name}`;
-          const node = buildTree(childPath)[0];
-          return { ...node, icon: getFolderIcon(folder.folderType) };
-        }),
+        children: data.folders.map(
+          (folder: { name: string; folderType: string }) => {
+            const childPath =
+              path === "root" ? folder.name : `${path}/${folder.name}`;
+            const node = buildTree(childPath)[0];
+            return { ...node, icon: getFolderIcon(folder.folderType) };
+          },
+        ),
       },
     ];
   };
@@ -74,7 +84,7 @@ const FileManager = () => {
       title: "Name",
       dataIndex: "name",
       key: "name",
-      render: (text: string, record: any) => (
+      render: (text: string) => (
         <span className="flex items-center gap-2">
           {getFileIcon(text)}
           {text}
@@ -106,30 +116,16 @@ const FileManager = () => {
   const { data, isLoading } = useQuery<FolderContentDTO>({
     queryKey: ["folderContent", selectedFolderId ?? "root"],
     queryFn: () => fetchFolderContent(selectedFolderId ?? null),
-    placeholderData: (previousData) => previousData,
+    placeholderData: (previousData: FolderContentDTO) => previousData,
   });
-  const ibmFolders = data?.folders ?? [];
   const ibmFiles = data?.files ?? [];
   const tableData = [...ibmFiles];
 
-  useEffect(() => {
-    if (treeData.length === 0) {
-      setTreeData([
-        {
-          title: "Root",
-          key: "root",
-          IdFolder: null,
-          isLeaf: false,
-          path: "root",
-        },
-      ]);
-    }
-  }, []);
   const updateTreeData = (
-    list: any[],
+    list: TreeNode[],
     key: React.Key,
-    children: any[],
-  ): any[] => {
+    children: TreeNode[],
+  ): TreeNode[] => {
     return list.map((node) => {
       if (node.key === key) {
         return {
@@ -158,7 +154,7 @@ const FileManager = () => {
 
         {isSidebarVisible && (
           <div
-            className={`w-full ${isStacked ? "w-full" : "w-full md:w-1/3"} border-r border-slate-200 bg-white  p-4 min-h-[500px]`}
+            className={`w-full ${isStacked ? "w-full" : "w-full md:w-1/3"} border-r border-slate-200 bg-white  p-4 min-h-125`}
           >
             <div className="flex items-center gap-2 mb-4 p-2 bg-blue-50 text-blue-600 rounded">
               <FolderOutlined />{" "}
@@ -196,7 +192,7 @@ const FileManager = () => {
                 setSelectedFolderId(
                   selectedKey === "root" ? null : selectedKey,
                 );
-                const nodePath = (info.node as any).path ?? "root";
+                const nodePath = (info.node as TreeNode).path ?? "root";
                 setSelectedPath(nodePath);
               }}
               showIcon
@@ -242,15 +238,15 @@ const FileManager = () => {
               >
                 {isSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
               </Button>
-              <div className="w-[1px] h-4 bg-slate-200" />
+              <div className="w-px h-4 bg-slate-200" />
 
               <Button type="text" icon={<PlusOutlined />}>
                 Add Folder
               </Button>
-              <div className="w-[1px] h-4 bg-slate-200" />
+              <div className="w-px h-4 bg-slate-200" />
               <Button type="text" icon={<EditOutlined />} />
               <Button type="text" icon={<DeleteOutlined />} />
-              <div className="w-[1px] h-4 bg-slate-200" />
+              <div className="w-px h-4 bg-slate-200" />
               <Button
                 type={`${!isStacked ? "primary" : "text"}`}
                 onClick={() => setIsStacked(false)}
