@@ -49,7 +49,7 @@ export const getFileIcon = (fileName?: string) => {
       return <FileTextOutlined style={{ fontSize: "16px" }} />;
 
     default:
-      return <FileOutlined style={{ fontSize: "16px" }} />;
+      return <FilePdfOutlined style={{ color: "#dc2626", fontSize: "16px" }} />;
   }
 };
 

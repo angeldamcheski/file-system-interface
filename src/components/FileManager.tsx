@@ -8,10 +8,10 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
-import { fetchFolderContent } from "../api/apiCall";
+import { fetchFolderContent, fetchRootFolder } from "../api/apiCall";
 import { Tree, Breadcrumb, Table, Button, Space, Spin, Popover } from "antd";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { fileSystem } from "../services/fakeApi";
 import type { FolderContentDTO } from "../types/FileManagerTypes";
 import {
@@ -26,6 +26,7 @@ const FileManager = () => {
   const [selectedPath, setSelectedPath] = useState("root");
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isStacked, setIsStacked] = useState(false);
+  const [rootName, setRootName] = useState("Root");
   const [treeData, setTreeData] = useState<TreeNode[]>([
     {
       title: "Root",
@@ -78,7 +79,29 @@ const FileManager = () => {
       },
     ];
   };
+  const fetchRoot = async () => {
+    const rootFolderName = await fetchRootFolder();
+    console.log(rootFolderName);
+  };
+  useEffect(() => {
+    const loadRoot = async () => {
+      const root = await fetchRootFolder();
 
+      setTreeData([
+        {
+          title: root.name,
+          key: root.id,
+          IdFolder: root.id,
+          isLeaf: false,
+          path: "root",
+        },
+      ]);
+      setRootName(root.name);
+      setSelectedFolderId(root.id);
+    };
+
+    loadRoot();
+  }, []);
   const columns = [
     {
       title: "Name",
@@ -99,9 +122,10 @@ const FileManager = () => {
     },
     {
       title: "Modified Date",
-      dataIndex: "modified",
+      dataIndex: "modifiedDate",
       key: "modified",
-      render: (date: string) => new Date(date).toLocaleString(),
+      render: (date?: string) =>
+        date ? new Date(date).toLocaleString() : "--",
     },
   ];
   const onBreadCrumbClick = (index: number) => {
@@ -109,7 +133,7 @@ const FileManager = () => {
     const node = findNodeByPath(treeData, newPath);
     if (!node) return;
     setSelectedPath(newPath);
-    setSelectedFolderId(node.key === "root" ? null : node.key);
+    setSelectedFolderId(node.key as string);
   };
   // DATA FROM FILENET
 
@@ -156,17 +180,17 @@ const FileManager = () => {
           <div
             className={`w-full ${isStacked ? "w-full" : "w-full md:w-1/3"} border-r border-slate-200 bg-white  p-4 min-h-125`}
           >
-            <div className="flex items-center gap-2 mb-4 p-2 bg-blue-50 text-blue-600 rounded">
+            <div className="flex items-center gap-2 mb-4 p-2 bg-blue-50 text-blue-600 rounded overflow-hidden">
               <FolderOutlined />{" "}
-              <span className="font-semibold text-black">
-                Root/{selectedPath === "root" ? "" : selectedPath}
+              <span className="font-semibold text-sm text-black wrap-anywhere">
+                {rootName}/{selectedPath === "root" ? "" : selectedPath}
               </span>
             </div>
             <Tree
               treeData={treeData}
               loadData={async (node) => {
                 if (node.children) return;
-                const folderId = node.key === "root" ? null : node.key;
+                const folderId = node.key as string;
 
                 const response = await fetchFolderContent(folderId);
                 const children = response.folders.map((folder) => ({
@@ -176,7 +200,7 @@ const FileManager = () => {
                   isLeaf: false,
                   icon: getFolderIcon(folder.type),
                   path:
-                    node.key === "root"
+                    node.path === "root"
                       ? folder.name
                       : `${node.path}/${folder.name}`,
                 }));
@@ -185,12 +209,12 @@ const FileManager = () => {
                   updateTreeData(origin, node.key, children),
                 );
               }}
-              selectedKeys={[selectedFolderId ?? "root"]}
+              selectedKeys={selectedFolderId ? [selectedFolderId] : []}
               onSelect={(keys, info) => {
                 if (!keys.length) return;
                 const selectedKey = keys[0] as string;
                 setSelectedFolderId(
-                  selectedKey === "root" ? null : selectedKey,
+                  selectedKey
                 );
                 const nodePath = (info.node as TreeNode).path ?? "root";
                 setSelectedPath(nodePath);
@@ -216,7 +240,7 @@ const FileManager = () => {
                     className="cursor-pointer hover: text-blue-500 transition-colors"
                     onClick={() => onBreadCrumbClick(index)}
                   >
-                    {part === "root" ? "Root" : part}
+                    {part === "root" ? rootName : part}
                   </span>
                 ),
               }))}

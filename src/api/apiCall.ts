@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { FolderContentDTO } from "../types/FileManagerTypes";
+import type { FileItemDTO, FolderContentDTO } from "../types/FileManagerTypes";
 
 const apiClient = axios.create({
   baseURL: "http://localhost:8080",
@@ -14,5 +14,10 @@ export const fetchFolderContent = async (
   const response = await apiClient.get<FolderContentDTO>("/contents", {
     params: parentId ? { parentId } : {},
   });
+  return response.data;
+};
+
+export const fetchRootFolder = async (): Promise<FileItemDTO> => {
+  const response = await apiClient.get<FileItemDTO>("/");
   return response.data;
 };
