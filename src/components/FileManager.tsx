@@ -213,9 +213,7 @@ const FileManager = () => {
               onSelect={(keys, info) => {
                 if (!keys.length) return;
                 const selectedKey = keys[0] as string;
-                setSelectedFolderId(
-                  selectedKey
-                );
+                setSelectedFolderId(selectedKey);
                 const nodePath = (info.node as TreeNode).path ?? "root";
                 setSelectedPath(nodePath);
               }}
