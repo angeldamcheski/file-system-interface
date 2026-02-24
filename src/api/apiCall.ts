@@ -36,3 +36,16 @@ export const fetchPaginatedFolderContent = async (
   });
   return response.data;
 };
+
+export const fetchPaginatedFolders = async (
+  parentId: string | null,
+  pageNum: number = 0,
+  pageSize: number | null = 5,
+  searchTerm: string = "",
+) => {
+  const response = await apiClient.get("/paginated-folders", {
+    params: { parentId, pageNum, pageSize, searchTerm },
+  });
+  console.log("Paginated folders response", response.data);
+  return response.data;
+};

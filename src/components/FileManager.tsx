@@ -12,17 +12,10 @@ import {
   fetchFolderContent,
   fetchPaginatedFolderContent,
   fetchRootFolder,
+  fetchPaginatedFolders,
 } from "../api/apiCall";
-import {
-  Tree,
-  Breadcrumb,
-  Table,
-  Button,
-  Space,
-  Spin,
-  Input,
-} from "antd";
-import { useQuery } from "@tanstack/react-query";
+import { Tree, Breadcrumb, Table, Button, Space, Spin, Input } from "antd";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 
 import {
@@ -64,7 +57,7 @@ const FileManager = () => {
       </p>
     </div>
   );
-  
+
   useEffect(() => {
     const loadRoot = async () => {
       const root = await fetchRootFolder();
@@ -116,6 +109,7 @@ const FileManager = () => {
     const newPath = getBreadCrumbsPath(selectedPath, index);
     const node = findNodeByPath(treeData, newPath);
     if (!node) return;
+    setSearchterm("");
     setSelectedPath(newPath);
     setSelectedFolderId(node.key as string);
 
@@ -132,6 +126,8 @@ const FileManager = () => {
     queryKey: ["folderContent", selectedFolderId, currentPage, pageSize],
     queryFn: () =>
       fetchPaginatedFolderContent(selectedFolderId, currentPage - 1, pageSize),
+    staleTime: 1000 * 60 * 5,
+    cacheTime: 1000 * 60 * 30,
     placeholderData: (previousData) => previousData,
   });
   const tableData = paginatedData?.files ?? [];
@@ -146,7 +142,7 @@ const FileManager = () => {
   useEffect(() => {
     const delayFn = setTimeout(() => {
       setCurrentPage(1);
-    });
+    }, 1000);
     return () => clearTimeout(delayFn);
   }, [searchTerm]);
   const updateTreeData = (
@@ -172,6 +168,53 @@ const FileManager = () => {
       return node;
     });
   };
+  const {
+    data: folderPages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["folders", selectedFolderId, searchTerm],
+    queryFn: ({ pageParam = 0 }) =>
+      fetchPaginatedFolders(selectedFolderId, pageParam, 5, searchTerm),
+    getNextPageParam: (lastPage) =>
+      lastPage.hasNextPage ? lastPage.continuanceToken : undefined,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    cacheTime: 1000 * 60 * 30,
+    enabled: !!selectedFolderId,
+  });
+  console.log("Paginated Folders", folderPages);
+  useEffect(() => {
+    const firstFolder = folderPages?.pages?.[0]?.folders?.[0];
+
+    if (searchTerm && firstFolder) {
+      const parentId = selectedFolderId;
+
+      const newNodes: TreeNode[] = folderPages.pages[0].folders.map(
+        (f: any) => ({
+          title: f.name,
+          key: f.id,
+          IdFolder: f.id,
+          isLeaf: false,
+          parentId: parentId,
+          icon: getFolderIcon(f.type),
+          path: selectedPath === "root" ? f.name : `${selectedPath}/${f.name}`,
+        }),
+      );
+
+      setTreeData((origin) => updateTreeData(origin, parentId!, newNodes));
+
+      setSelectedFolderId(firstFolder.id);
+      setSelectedPath(
+        selectedPath === "root"
+          ? firstFolder.name
+          : `${selectedPath}/${firstFolder.name}`,
+      );
+
+      // 4. Ensure the parent is expanded so we can see the selection
+      setExpandedKeys((prev) => Array.from(new Set([...prev, parentId!])));
+    }
+  }, [folderPages, searchTerm]);
   return (
     <div className="max-w-6xl mx-auto  p-6 bg-neutral-50 border border-slate-200 rounded-md shadow-md">
       <h2 className="text-2xl font-semibold mb-4">File Manager</h2>
@@ -193,32 +236,74 @@ const FileManager = () => {
             <Search
               className="pb-4"
               placeholder="Input Folder Name"
+              loading={isFetchingNextPage}
               onChange={(e) => setSearchterm(e.target.value)}
             ></Search>
             <Tree
               treeData={treeData}
               expandedKeys={expandedKeys}
+              blockNode
               onExpand={(keys) => setExpandedKeys(keys)}
+              // loadData={async (node) => {
+              //   if (node.children) return;
+              //   const folderId = node.key as string;
+
+              //   const response = await fetchFolderContent(folderId);
+              //   const children = response.folders.map((folder) => ({
+              //     title: folder.name,
+              //     key: folder.id,
+              //     IdFolder: folder.id,
+              //     isLeaf: false,
+              //     parentId: node.key as string,
+              //     icon: getFolderIcon(folder.type),
+              //     path:
+              //       node.path === "root"
+              //         ? folder.name
+              //         : `${node.path}/${folder.name}`,
+              //   }));
+              //   console.log("All children", children);
+              //   setTreeData((origin) =>
+              //     updateTreeData(origin, node.key, children),
+              //   );
+              // }}
               loadData={async (node) => {
                 if (node.children) return;
-                const folderId = node.key as string;
+                if (hasNextPage) {
+                  await fetchNextPage();
+                }
 
-                const response = await fetchFolderContent(folderId);
-                const children = response.folders.map((folder) => ({
-                  title: folder.name,
-                  key: folder.id,
-                  IdFolder: folder.id,
-                  isLeaf: false,
-                  parentId: node.key as string,
-                  icon: getFolderIcon(folder.type),
-                  path:
-                    node.path === "root"
-                      ? folder.name
-                      : `${node.path}/${folder.name}`,
-                }));
+                let nextPage = 0;
+                let allChildren: TreeNode[] = [];
+
+                while (true) {
+                  const response = await fetchPaginatedFolders(
+                    node.key as string,
+                    nextPage,
+                    10,
+                    searchTerm,
+                  );
+
+                  const children = response.folders.map((folder) => ({
+                    title: folder.name,
+                    key: folder.id,
+                    IdFolder: folder.id,
+                    isLeaf: false,
+                    parentId: node.key as string,
+                    icon: getFolderIcon(folder.type),
+                    path:
+                      node.path === "root"
+                        ? folder.name
+                        : `${node.path}/${folder.name}`,
+                  }));
+                  allChildren = [...allChildren, ...children];
+
+                  if (!response.hasNextPage) break;
+                  console.log("All children", allChildren);
+                  nextPage = parseInt(response.continuanceToken);
+                }
 
                 setTreeData((origin) =>
-                  updateTreeData(origin, node.key, children),
+                  updateTreeData(origin, node.key, allChildren),
                 );
               }}
               selectedKeys={selectedFolderId ? [selectedFolderId] : []}

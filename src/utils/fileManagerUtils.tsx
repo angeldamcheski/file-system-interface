@@ -146,6 +146,8 @@ export const getParentChain = (
   return keys;
 };
 
+
+//Legacy - Used for dummy data
 export const buildTree = (path: string): TreeNode[] => {
     const data = fileSystem[path];
     if (!data) return [];
