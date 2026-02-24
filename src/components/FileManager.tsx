@@ -13,10 +13,17 @@ import {
   fetchPaginatedFolderContent,
   fetchRootFolder,
 } from "../api/apiCall";
-import { Tree, Breadcrumb, Table, Button, Space, Spin, Popover } from "antd";
+import {
+  Tree,
+  Breadcrumb,
+  Table,
+  Button,
+  Space,
+  Spin,
+  Input,
+} from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { fileSystem } from "../services/fakeApi";
 
 import {
   getFolderIcon,
@@ -27,7 +34,9 @@ import {
 } from "../utils/fileManagerUtils";
 import type TreeNode from "../types/TreeNode";
 const FileManager = () => {
+  const { Search } = Input;
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchterm] = useState("");
   const [pageSize, setPageSize] = useState(5);
   const [isSidebarVisible, setIsSideBarVisible] = useState(true);
   const [selectedPath, setSelectedPath] = useState("root");
@@ -55,38 +64,7 @@ const FileManager = () => {
       </p>
     </div>
   );
-  const buildTree = (path: string): TreeNode[] => {
-    const data = fileSystem[path];
-    if (!data) return [];
-
-    return [
-      {
-        title: (
-          <Popover
-            title="Folder info"
-            placement="right"
-            mouseEnterDelay={0.5}
-            content={getFolderPopOverContent(
-              path === "root" ? "Root" : (path.split("/").pop() ?? "Folder"),
-            )}
-          >
-            <span>{path === "root" ? "Root" : path.split("/").pop()}</span>
-          </Popover>
-        ),
-        key: path,
-        path: path,
-        icon: getFolderIcon(path === "root" ? undefined : "documents"),
-        children: data.folders.map(
-          (folder: { name: string; folderType: string }) => {
-            const childPath =
-              path === "root" ? folder.name : `${path}/${folder.name}`;
-            const node = buildTree(childPath)[0];
-            return { ...node, icon: getFolderIcon(folder.folderType) };
-          },
-        ),
-      },
-    ];
-  };
+  
   useEffect(() => {
     const loadRoot = async () => {
       const root = await fetchRootFolder();
@@ -153,8 +131,8 @@ const FileManager = () => {
   } = useQuery({
     queryKey: ["folderContent", selectedFolderId, currentPage, pageSize],
     queryFn: () =>
-      fetchPaginatedFolderContent(selectedFolderId, currentPage - 1, pageSize),  
-    placeholderData: (previousData) => previousData, 
+      fetchPaginatedFolderContent(selectedFolderId, currentPage - 1, pageSize),
+    placeholderData: (previousData) => previousData,
   });
   const tableData = paginatedData?.files ?? [];
   const totalFiles = paginatedData?.hasNextPage
@@ -162,10 +140,15 @@ const FileManager = () => {
     : (currentPage - 1) * pageSize + tableData.length;
   console.log("Total files", paginatedData, totalFiles);
 
-  
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedFolderId]);
+  useEffect(() => {
+    const delayFn = setTimeout(() => {
+      setCurrentPage(1);
+    });
+    return () => clearTimeout(delayFn);
+  }, [searchTerm]);
   const updateTreeData = (
     list: TreeNode[],
     key: React.Key,
@@ -207,6 +190,11 @@ const FileManager = () => {
                 {rootName}/{selectedPath === "root" ? "" : selectedPath}
               </span>
             </div>
+            <Search
+              className="pb-4"
+              placeholder="Input Folder Name"
+              onChange={(e) => setSearchterm(e.target.value)}
+            ></Search>
             <Tree
               treeData={treeData}
               expandedKeys={expandedKeys}
