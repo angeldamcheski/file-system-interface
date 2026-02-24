@@ -118,3 +118,30 @@ export const findNodeByPath = (
   }
   return null;
 };
+
+export const getParentChain = (
+  tree: TreeNode[],
+  targetId: string,
+): string[] => {
+  const map = new Map<string, TreeNode>();
+
+  const flatten = (nodes: TreeNode[]) => {
+    for (const node of nodes) {
+      map.set(node.key as string, node);
+      if (node.children) flatten(node.children);
+    }
+  };
+
+  flatten(tree);
+
+  const keys: string[] = [];
+  let current = map.get(targetId);
+
+  while (current) {
+    keys.unshift(current.key as string);
+    if (!current.parentId) break;
+    current = map.get(current.parentId);
+  }
+
+  return keys;
+};

@@ -8,25 +8,33 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
-import { fetchFolderContent, fetchRootFolder } from "../api/apiCall";
+import {
+  fetchFolderContent,
+  fetchPaginatedFolderContent,
+  fetchRootFolder,
+} from "../api/apiCall";
 import { Tree, Breadcrumb, Table, Button, Space, Spin, Popover } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { fileSystem } from "../services/fakeApi";
-import type { FolderContentDTO } from "../types/FileManagerTypes";
+
 import {
   getFolderIcon,
   getFileIcon,
   getBreadCrumbsPath,
   findNodeByPath,
+  getParentChain,
 } from "../utils/fileManagerUtils";
 import type TreeNode from "../types/TreeNode";
 const FileManager = () => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
   const [isSidebarVisible, setIsSideBarVisible] = useState(true);
   const [selectedPath, setSelectedPath] = useState("root");
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isStacked, setIsStacked] = useState(false);
   const [rootName, setRootName] = useState("Root");
+  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
   const [treeData, setTreeData] = useState<TreeNode[]>([
     {
       title: "Root",
@@ -79,10 +87,6 @@ const FileManager = () => {
       },
     ];
   };
-  const fetchRoot = async () => {
-    const rootFolderName = await fetchRootFolder();
-    console.log(rootFolderName);
-  };
   useEffect(() => {
     const loadRoot = async () => {
       const root = await fetchRootFolder();
@@ -91,6 +95,7 @@ const FileManager = () => {
         {
           title: root.name,
           key: root.id,
+          parentId: null,
           IdFolder: root.id,
           isLeaf: false,
           path: "root",
@@ -98,6 +103,7 @@ const FileManager = () => {
       ]);
       setRootName(root.name);
       setSelectedFolderId(root.id);
+      setExpandedKeys([root.id]);
     };
 
     loadRoot();
@@ -134,17 +140,32 @@ const FileManager = () => {
     if (!node) return;
     setSelectedPath(newPath);
     setSelectedFolderId(node.key as string);
+
+    const keysToExpand = getParentChain(treeData, node.key as string);
+    setExpandedKeys(keysToExpand);
   };
   // DATA FROM FILENET
 
-  const { data, isLoading } = useQuery<FolderContentDTO>({
-    queryKey: ["folderContent", selectedFolderId ?? "root"],
-    queryFn: () => fetchFolderContent(selectedFolderId ?? null),
-    placeholderData: (previousData: FolderContentDTO) => previousData,
+  const {
+    data: paginatedData,
+    isLoading,
+    isFetching,
+  } = useQuery({
+    queryKey: ["folderContent", selectedFolderId, currentPage, pageSize],
+    queryFn: () =>
+      fetchPaginatedFolderContent(selectedFolderId, currentPage - 1, pageSize),  
+    placeholderData: (previousData) => previousData, 
   });
-  const ibmFiles = data?.files ?? [];
-  const tableData = [...ibmFiles];
+  const tableData = paginatedData?.files ?? [];
+  const totalFiles = paginatedData?.hasNextPage
+    ? currentPage * pageSize + 1
+    : (currentPage - 1) * pageSize + tableData.length;
+  console.log("Total files", paginatedData, totalFiles);
 
+  
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedFolderId]);
   const updateTreeData = (
     list: TreeNode[],
     key: React.Key,
@@ -188,6 +209,8 @@ const FileManager = () => {
             </div>
             <Tree
               treeData={treeData}
+              expandedKeys={expandedKeys}
+              onExpand={(keys) => setExpandedKeys(keys)}
               loadData={async (node) => {
                 if (node.children) return;
                 const folderId = node.key as string;
@@ -198,6 +221,7 @@ const FileManager = () => {
                   key: folder.id,
                   IdFolder: folder.id,
                   isLeaf: false,
+                  parentId: node.key as string,
                   icon: getFolderIcon(folder.type),
                   path:
                     node.path === "root"
@@ -216,6 +240,8 @@ const FileManager = () => {
                 setSelectedFolderId(selectedKey);
                 const nodePath = (info.node as TreeNode).path ?? "root";
                 setSelectedPath(nodePath);
+                const keysToExpand = getParentChain(treeData, selectedKey);
+                setExpandedKeys(keysToExpand);
               }}
               showIcon
               expandAction="click"
@@ -286,8 +312,28 @@ const FileManager = () => {
             <Table
               dataSource={tableData}
               columns={columns}
-              pagination={false}
+              pagination={{
+                current: currentPage,
+                pageSize: pageSize,
+                total: totalFiles,
+                showSizeChanger: true,
+                placement: ["bottomCenter"],
+                onChange: (page, size) => {
+                  if (size !== pageSize) {
+                    setPageSize(size);
+                    setCurrentPage(1);
+                  } else {
+                    setCurrentPage(page);
+                  }
+                },
+                onShowSizeChange: (current, size) => {
+                  setPageSize(size);
+                  setCurrentPage(1);
+                },
+                pageSizeOptions: ["5", "10", "15", "20"],
+              }}
               rowKey="id"
+              loading={isFetching}
               locale={{ emptyText: "No files in this folder" }}
               className="hover:cursor-pointer text-wrap "
             />
