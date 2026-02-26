@@ -13,15 +13,7 @@ import {
   fetchPaginatedFolderContent,
   fetchRootFolder,
 } from "../api/apiCall";
-import {
-  Tree,
-  Breadcrumb,
-  Table,
-  Button,
-  Space,
-  Spin,
-  Input,
-} from "antd";
+import { Tree, Breadcrumb, Table, Button, Space, Spin, Input } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 
@@ -31,6 +23,7 @@ import {
   getBreadCrumbsPath,
   findNodeByPath,
   getParentChain,
+  updateTreeData,
 } from "../utils/fileManagerUtils";
 import type TreeNode from "../types/TreeNode";
 const FileManager = () => {
@@ -53,18 +46,7 @@ const FileManager = () => {
       path: "root",
     },
   ]);
-  const getFolderPopOverContent = (folderName: string) => (
-    <div className="p-1">
-      <p>
-        <strong>Path: </strong>
-        {}
-      </p>
-      <p className="text-xs text-gray-500">
-        Click to view contents of {folderName}
-      </p>
-    </div>
-  );
-  
+
   useEffect(() => {
     const loadRoot = async () => {
       const root = await fetchRootFolder();
@@ -133,6 +115,7 @@ const FileManager = () => {
     queryFn: () =>
       fetchPaginatedFolderContent(selectedFolderId, currentPage - 1, pageSize),
     placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: false,
   });
   const tableData = paginatedData?.files ?? [];
   const totalFiles = paginatedData?.hasNextPage
@@ -149,29 +132,6 @@ const FileManager = () => {
     });
     return () => clearTimeout(delayFn);
   }, [searchTerm]);
-  const updateTreeData = (
-    list: TreeNode[],
-    key: React.Key,
-    children: TreeNode[],
-  ): TreeNode[] => {
-    return list.map((node) => {
-      if (node.key === key) {
-        return {
-          ...node,
-          children,
-        };
-      }
-
-      if (node.children) {
-        return {
-          ...node,
-          children: updateTreeData(node.children, key, children),
-        };
-      }
-
-      return node;
-    });
-  };
   return (
     <div className="max-w-6xl mx-auto  p-6 bg-neutral-50 border border-slate-200 rounded-md shadow-md">
       <h2 className="text-2xl font-semibold mb-4">File Manager</h2>
