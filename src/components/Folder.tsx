@@ -3,7 +3,10 @@ import { Button, Spin } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { fetchPaginatedFolders } from "../api/apiCall";
 import type { FileItemDTO } from "../types/FileManagerTypes";
-import { useFolderTreeContext } from "../context/FolderTreeContext";
+import {
+  useFolderTreeContext,
+  type BreadcrumbItem,
+} from "../context/FolderTreeContext";
 
 interface FolderPage {
   folders: FileItemDTO[];
@@ -17,7 +20,7 @@ interface FolderProps {
   defaultExpanded?: boolean;
   pageSize?: number;
   level?: number;
-  breadcrumbs?: { id: string; name: string }[];
+  parentBreadcrumbs?: BreadcrumbItem[];
 }
 
 const toPageNumber = (value: string | number | null | undefined) => {
@@ -51,11 +54,19 @@ const Folder = ({
   defaultExpanded = false,
   pageSize = 5,
   level = 0,
+  parentBreadcrumbs = [],
 }: FolderProps) => {
-  const { selectedFolderId, setSelectedFolderId, folderSearchText } =
-    useFolderTreeContext();
+  const {
+    selectedFolderId,
+    setSelectedFolderId,
+    breadcrumbs,
+    setBreadcrumbs,
+    folderSearchText,
+  } = useFolderTreeContext();
+
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [innerSearchTerm, setInnerSearchTerm] = useState("");
+
   const {
     data,
     isLoading,
@@ -82,6 +93,19 @@ const Folder = ({
     enabled: expanded,
   });
 
+  const currentBreadcrumbs = useMemo(() => {
+    return [
+      ...parentBreadcrumbs,
+      {
+        title: folderName,
+        id: folderId,
+      },
+    ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folderId, folderName, JSON.stringify(parentBreadcrumbs)]);
+
+  console.log("TEST allo", currentBreadcrumbs);
+
   const childFolders = useMemo(
     () => data?.pages.flatMap((page) => page.folders) ?? [],
     [data],
@@ -103,11 +127,27 @@ const Folder = ({
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [folderSearchText, expanded, selectedFolderId, folderId]);
+
+  useEffect(() => {
+    if (selectedFolderId == folderId) {
+      setBreadcrumbs(currentBreadcrumbs);
+      setExpanded(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folderId, selectedFolderId, currentBreadcrumbs]);
+
+  const isChildSelected = useMemo(() => {
+    return breadcrumbs.some((i) => i.id == folderId);
+  }, [breadcrumbs, folderId]);
+
   return (
     <div>
       <div
-        className={`flex items-center gap-2 py-1 cursor-pointer ${isSelected ? "font-semibold text-blue-600" : "text-slate-700"}`}
+        className={`flex items-center gap-2 py-1  cursor-pointer ${isSelected ? "font-semibold text-blue-600 bg-blue-100 hover:bg-blue-100 rounded-md " : "text-slate-700 hover:bg-neutral-50"} hover:cursor-pointer`}
         style={{ paddingLeft: `${level * 16}px` }}
+        onClick={() => {
+          setSelectedFolderId(folderId);
+        }}
       >
         <Button
           type="text"
@@ -116,16 +156,18 @@ const Folder = ({
             color: "inherit",
           }}
           onClick={() => {
-            setExpanded((prev) => !prev);
+            if (!isChildSelected) {
+              setExpanded((prev) => !prev);
+            }
           }}
         >
           {expanded ? "▾" : "▸"}
         </Button>
         <button
           type="button"
-          className={`text-left text-sm`}
+          className={`text-left text-sm hover:cursor-pointer`}
           onClick={() => {
-            setExpanded((prev) => !prev);
+            setExpanded(true);
             setSelectedFolderId(folderId);
           }}
         >
@@ -160,6 +202,7 @@ const Folder = ({
               folderName={subFolder.name}
               pageSize={pageSize}
               level={level + 1}
+              parentBreadcrumbs={currentBreadcrumbs}
               // breadcrumbs={[...breadcrumb, {
               //   id:,
               //   file

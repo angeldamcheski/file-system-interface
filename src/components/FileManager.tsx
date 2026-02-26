@@ -10,32 +10,38 @@ import {
 } from "@ant-design/icons";
 import {
   fetchPaginatedFolderContent,
-  fetchRootFolder,
   fetchPaginatedFolders,
 } from "../api/apiCall";
-import { Tree, Breadcrumb, Table, Button, Space, Spin, Input } from "antd";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
-
 import {
-  getFolderIcon,
-  getFileIcon,
-  getBreadCrumbsPath,
-  findNodeByPath,
-  getParentChain,
-} from "../utils/fileManagerUtils";
+  Breadcrumb,
+  Table,
+  Button,
+  Space,
+  Spin,
+  Input,
+  Typography,
+} from "antd";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
+
+import { getFileIcon } from "../utils/fileManagerUtils";
 import type TreeNode from "../types/TreeNode";
+import FolderPanelManager from "./FolderPanelManager";
+import { useFolderTreeContext } from "../context/FolderTreeContext";
+import type { FileItemDTO } from "../types/FileManagerTypes";
+
+const { Text } = Typography;
+
 const FileManager = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { Search } = Input;
   const [currentPage, setCurrentPage] = useState(1);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [searchTerm, setSearchterm] = useState("");
   const [pageSize, setPageSize] = useState(5);
   const [isSidebarVisible, setIsSideBarVisible] = useState(true);
-  const [selectedPath, setSelectedPath] = useState("root");
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isStacked, setIsStacked] = useState(false);
-  const [rootName, setRootName] = useState("Root");
-  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [treeData, setTreeData] = useState<TreeNode[]>([
     {
       title: "Root",
@@ -46,27 +52,11 @@ const FileManager = () => {
     },
   ]);
 
-  useEffect(() => {
-    const loadRoot = async () => {
-      const root = await fetchRootFolder();
+  const { breadcrumbs, selectedFolderId, setSelectedFolderId } =
+    useFolderTreeContext();
 
-      setTreeData([
-        {
-          title: root.name,
-          key: root.id,
-          parentId: null,
-          IdFolder: root.id,
-          isLeaf: false,
-          path: "root",
-        },
-      ]);
-      setRootName(root.name);
-      setSelectedFolderId(root.id);
-      setExpandedKeys([root.id]);
-    };
+  console.log(breadcrumbs, "Breadcrumbs list");
 
-    loadRoot();
-  }, []);
   const columns = [
     {
       title: "Name",
@@ -93,23 +83,20 @@ const FileManager = () => {
         date ? new Date(date).toLocaleString() : "--",
     },
   ];
-  const onBreadCrumbClick = (index: number) => {
-    const newPath = getBreadCrumbsPath(selectedPath, index);
-    const node = findNodeByPath(treeData, newPath);
-    if (!node) return;
-    setSearchterm("");
-    setSelectedPath(newPath);
-    setSelectedFolderId(node.key as string);
-
-    const keysToExpand = getParentChain(treeData, node.key as string);
-    setExpandedKeys(keysToExpand);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const onBreadCrumbClick = (folderId: string) => {
+    setSelectedFolderId(folderId);
   };
   // DATA FROM FILENET
   const {
     data: folderPages,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     fetchNextPage,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     hasNextPage,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     refetch,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     isFetchingNextPage,
   } = useInfiniteQuery({
     queryKey: ["folders", selectedFolderId, searchTerm],
@@ -132,145 +119,19 @@ const FileManager = () => {
       fetchPaginatedFolderContent(selectedFolderId, currentPage - 1, pageSize),
     staleTime: 1000 * 60 * 5,
     cacheTime: 1000 * 60 * 30,
-    placeholderData: (previousData) => previousData,
+    placeholderData: (previousData: FileItemDTO[]) => previousData,
   });
   const tableData = paginatedData?.files ?? [];
   const totalFiles = paginatedData?.hasNextPage
     ? currentPage * pageSize + 1
     : (currentPage - 1) * pageSize + tableData.length;
   console.log("Paginated Data", paginatedData, totalFiles);
-
-  // useEffect(() => {
-  //   setCurrentPage(1);
-  // }, [selectedFolderId]);
-  const updateTreeData = (
-    list: TreeNode[],
-    key: React.Key,
-    children: TreeNode[],
-  ): TreeNode[] => {
-    return list.map((node) => {
-      if (node.key === key) {
-        return {
-          ...node,
-          children,
-        };
-      }
-      console.log("Node from children", node.children);
-      if (node.children) {
-        return {
-          ...node,
-          children: updateTreeData(node.children, key, children),
-        };
-      }
-
-      return node;
-    });
-  };
-  useEffect(() => {
-    const delayFn = setTimeout(() => {
-      if (selectedFolderId) {
-        setTreeData((origin) => updateTreeData(origin, selectedFolderId, []));
-        refetch();
-      }
-      setCurrentPage(1);
-    }, 400);
-    return () => clearTimeout(delayFn);
-  }, [searchTerm]);
-
-  useEffect(() => {
-    const firstFolder = folderPages?.pages?.[0]?.folders?.[0];
-
-    if (searchTerm && firstFolder) {
-      const parentId = selectedFolderId;
-
-      const newNodes: TreeNode[] = folderPages.pages[0].folders.map(
-        (f: any) => ({
-          title: f.name,
-          key: f.id,
-          IdFolder: f.id,
-          isLeaf: false,
-          parentId: parentId,
-          icon: getFolderIcon(f.type),
-          path: selectedPath === "root" ? f.name : `${selectedPath}/${f.name}`,
-        }),
-      );
-
-      setTreeData((origin) => updateTreeData(origin, parentId!, newNodes));
-
-      setSelectedFolderId(firstFolder.id);
-      setSelectedPath(
-        selectedPath === "root"
-          ? firstFolder.name
-          : `${selectedPath}/${firstFolder.name}`,
-      );
-
-      // 4. Ensure the parent is expanded so we can see the selection
-      setExpandedKeys((prev) => Array.from(new Set([...prev, parentId!])));
-    }
-  }, [folderPages, searchTerm]);
-
-  // useEffect(() => {
-  //   if (!folderPages || !selectedFolderId) return;
-
-  //   // 1. Flatten all pages to get the full list (e.g., all 9 folders)
-  //   const allFolders = folderPages.pages.flatMap((page) => page.folders || []);
-  //   const firstFolder = allFolders[0];
-
-  //   // 2. Map folders to TreeNodes
-  //   const newNodes: TreeNode[] = allFolders.map((f: any) => ({
-  //     title: f.name,
-  //     key: f.id,
-  //     IdFolder: f.id,
-  //     isLeaf: false,
-  //     parentId: selectedFolderId,
-  //     icon: getFolderIcon(f.type),
-  //     path: selectedPath === "root" ? f.name : `${selectedPath}/${f.name}`,
-  //   }));
-
-  //   // 3. Update the tree - This appends Page 2 to Page 1 in the UI
-  //   setTreeData((origin) => updateTreeData(origin, selectedFolderId, newNodes));
-
-  //   // 4. ALWAYS Expand the parent (selectedFolderId) so children are visible
-  //   // This ensures that on "Load More", the list stays open.
-  //   setExpandedKeys((prev) => Array.from(new Set([...prev, selectedFolderId])));
-
-  //   // 5. Search-Specific Logic
-  //   if (firstFolder) {
-  //     setSelectedFolderId(firstFolder.id);
-  //     setSelectedPath(
-  //       selectedPath === "root"
-  //         ? firstFolder.name
-  //         : `${selectedPath}/${firstFolder.name}`,
-  //     );
-
-  //     // Also expand the newly selected first folder from search results
-  //     setExpandedKeys((prev) => Array.from(new Set([...prev, firstFolder.id])));
-  //   }
-  // }, [folderPages, searchTerm, selectedFolderId]);
-
-  // useEffect(() => {
-  //   if (!folderPages?.pages?.length || !selectedFolderId) return;
-
-  //   const allFolders = folderPages.pages.flatMap((page) => page.folders);
-
-  //   const newNodes: TreeNode[] = allFolders.map((f: any) => ({
-  //     title: f.name,
-  //     key: f.id,
-  //     IdFolder: f.id,
-  //     isLeaf: false,
-  //     parentId: selectedFolderId,
-  //     icon: getFolderIcon(f.type),
-  //     path: selectedPath === "root" ? f.name : `${selectedPath}/${f.name}`,
-  //   }));
-
-  //   setTreeData((origin) => updateTreeData(origin, selectedFolderId, newNodes));
-  //   setExpandedKeys((prev) =>
-  //     Array.from(new Set([...prev, selectedFolderId!])),
-  //   );
-  // }, [folderPages, selectedFolderId]);
+  console.log("Selected folder id", selectedFolderId);
 
   console.log("TREE DATA", treeData);
-
+  const formattedBreadcrumbs = useMemo(() => {
+    return breadcrumbs.map((b) => `${b.title}/`);
+  }, [breadcrumbs]);
   return (
     <div className="max-w-6xl mx-auto  p-6 bg-neutral-50 border border-slate-200 rounded-md shadow-md">
       <h2 className="text-2xl font-semibold mb-4">File Manager</h2>
@@ -284,148 +145,10 @@ const FileManager = () => {
             className={`w-full ${isStacked ? "w-full" : "w-full md:w-1/3"} border-r border-slate-200 bg-white  p-4 min-h-125`}
           >
             <div className="flex items-center gap-2 mb-4 p-2 bg-blue-50 text-blue-600 rounded overflow-hidden">
-              <FolderOutlined />{" "}
-              <span className="font-semibold text-sm text-black wrap-anywhere">
-                {rootName}/{selectedPath === "root" ? "" : selectedPath}
-              </span>
+              <FolderOutlined /> <Text ellipsis>{formattedBreadcrumbs}</Text>
             </div>
-            <Search
-              className="pb-4"
-              placeholder="Input Folder Name"
-              loading={isFetchingNextPage}
-              allowClear
-              onChange={(e) => setSearchterm(e.target.value)}
-            ></Search>
-            <Tree
-              treeData={treeData}
-              expandedKeys={expandedKeys}
-              blockNode
-              onExpand={(keys) => setExpandedKeys(keys)}
-              loadData={async (node) => {
-                // if (node.children) return;
-                // setSelectedFolderId(node.key as string);
 
-                if (node.children?.length) return;
-
-                let nextPage = 0;
-                const allChildren: TreeNode[] = [];
-
-                const response = await fetchPaginatedFolders(
-                  node.key as string,
-                  nextPage,
-                  5, // pageSize for tree
-                  searchTerm,
-                );
-
-                // Map response folders to TreeNode
-                const childrenNodes: TreeNode[] = response.folders.map(
-                  (folder) => ({
-                    title: folder.name,
-                    key: folder.id,
-                    IdFolder: folder.id,
-                    isLeaf: false,
-                    parentId: node.key as string,
-                    icon: getFolderIcon(folder.type),
-                    path:
-                      node.path === "root"
-                        ? folder.name
-                        : `${node.path}/${folder.name}`,
-                  }),
-                );
-
-                setTreeData((origin) =>
-                  updateTreeData(origin, node.key, childrenNodes),
-                );
-
-                node["__nextPage"] = response.hasNextPage
-                  ? parseInt(response.continuanceToken!)
-                  : null;
-                console.log("Node from inside loadData", node);
-                // if (hasNextPage) {
-                //   await fetchNextPage();
-                // }
-
-                // let nextPage = 0;
-                // let allChildren: TreeNode[] = [];
-
-                // while (true) {
-                //   const response = await fetchPaginatedFolders(
-                //     node.key as string,
-                //     nextPage,
-                //     10,
-                //     searchTerm,
-                //   );
-
-                //   const children = response.folders.map((folder) => ({
-                //     title: (
-                //       <Popover
-                //         title="Folder info"
-                //         placement="right"
-                //         mouseEnterDelay={0.5}
-                //         content={getFolderPopOverContent(
-                //           folder.name,
-                //           node.path === "root"
-                //             ? folder.name
-                //             : `${node.path}/${folder.name}`,
-                //         )}
-                //       >
-                //         <span>{folder.name}</span>
-                //       </Popover>
-                //     ),
-                //     key: folder.id,
-                //     IdFolder: folder.id,
-                //     isLeaf: false,
-                //     parentId: node.key as string,
-                //     icon: getFolderIcon(folder.type),
-                //     path:
-                //       node.path === "root"
-                //         ? folder.name
-                //         : `${node.path}/${folder.name}`,
-                //   }));
-                //   allChildren = [...allChildren, ...children];
-
-                //   if (!response.hasNextPage) break;
-                //   console.log("All children", allChildren);
-                //   nextPage = parseInt(response.continuanceToken);
-                // }
-
-                // setTreeData((origin) =>
-                //   updateTreeData(origin, node.key, allChildren),
-                // );
-              }}
-              selectedKeys={selectedFolderId ? [selectedFolderId] : []}
-              onSelect={(keys, info) => {
-                if (!keys.length) return;
-                const selectedKey = keys[0] as string;
-                setSelectedFolderId(selectedKey);
-                const nodePath = (info.node as TreeNode).path ?? "root";
-                setSelectedPath(nodePath);
-                const keysToExpand = getParentChain(treeData, selectedKey);
-                setExpandedKeys(keysToExpand);
-              }}
-              showIcon
-              expandAction="click"
-              defaultExpandAll={false}
-            />
-            {hasNextPage && (
-              <div className="mt-3 flex justify-center">
-                <Button
-                  loading={isFetchingNextPage}
-                  onClick={() => {
-                    fetchNextPage();
-                    // updateTreeData(
-                    //   treeData,
-                    //   selectedFolderId ?? "",
-                    //   folderPages,
-                    // );
-                  }}
-                  type="dashed"
-                  block
-                >
-                  Load More Folders
-                </Button>
-              </div>
-            )}
+            <FolderPanelManager />
           </div>
         )}
         {/* Right Div */}
@@ -434,16 +157,15 @@ const FileManager = () => {
         >
           <div className="p-3 border-b border-slate-200 bg-white flex justify-between items-center">
             <Breadcrumb
-              items={[
-                "root",
-                ...selectedPath.split("/").filter((p) => p !== "root"),
-              ].map((part, index) => ({
+              items={breadcrumbs.map((part) => ({
                 title: (
                   <span
                     className="cursor-pointer hover: text-blue-500 transition-colors"
-                    onClick={() => onBreadCrumbClick(index)}
+                    onClick={() => {
+                      setSelectedFolderId(part.id);
+                    }}
                   >
-                    {part === "root" ? rootName : part}
+                    {part.title}
                   </span>
                 ),
               }))}

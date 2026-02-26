@@ -3,8 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import Folder from "./Folder";
 import Search from "antd/es/input/Search";
 import { useFolderTreeContext } from "../context/FolderTreeContext";
+import { useEffect } from "react";
 
-const FolderPanelMenager = () => {
+const FolderPanelManager = () => {
   const {
     data: rootFolder,
     isLoading,
@@ -14,6 +15,16 @@ const FolderPanelMenager = () => {
     queryFn: fetchRootFolder,
   });
   const { folderSearchText, setFolderSearchText } = useFolderTreeContext();
+
+  const { setSelectedFolderId } = useFolderTreeContext();
+
+  useEffect(() => {
+    if (!rootFolder) return;
+
+    setSelectedFolderId(rootFolder?.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rootFolder]);
+
   return (
     <div>
       <div>
@@ -32,6 +43,7 @@ const FolderPanelMenager = () => {
           pageSize={5}
           folderName={rootFolder.name}
           level={0} // root level
+          parentBreadcrumbs={[]}
         />
       ) : isLoading ? (
         <div>Loading...</div>
@@ -44,4 +56,4 @@ const FolderPanelMenager = () => {
   );
 };
 
-export default FolderPanelMenager;
+export default FolderPanelManager;

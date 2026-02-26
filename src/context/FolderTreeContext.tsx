@@ -21,6 +21,20 @@ interface FolderTreeProviderProps {
   initialFolderSearchText?: string;
 }
 
+export interface BreadcrumbItem {
+  id: string;
+  title: string;
+}
+interface FolderTreeContextValue {
+  selectedFolderId: string | null;
+  setSelectedFolderId: Dispatch<SetStateAction<string | null>>;
+
+  breadcrumbs: BreadcrumbItem[];
+  setBreadcrumbs: Dispatch<SetStateAction<BreadcrumbItem[]>>;
+
+  folderSearchText: string;
+  setFolderSearchText: Dispatch<SetStateAction<string>>;
+}
 const FolderTreeContext = createContext<FolderTreeContextValue | undefined>(
   undefined,
 );
@@ -37,14 +51,18 @@ export const FolderTreeProvider = ({
     initialFolderSearchText,
   );
 
+  const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
+
   const value = useMemo(
     () => ({
       selectedFolderId,
       setSelectedFolderId,
       folderSearchText,
       setFolderSearchText,
+      breadcrumbs,
+      setBreadcrumbs,
     }),
-    [selectedFolderId, folderSearchText],
+    [selectedFolderId, folderSearchText, breadcrumbs],
   );
 
   return (
@@ -54,6 +72,7 @@ export const FolderTreeProvider = ({
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useFolderTreeContext = () => {
   const context = useContext(FolderTreeContext);
 
