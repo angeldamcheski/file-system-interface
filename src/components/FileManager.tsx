@@ -9,7 +9,6 @@ import {
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
 import {
-  fetchFolderContent,
   fetchPaginatedFolderContent,
   fetchRootFolder,
   fetchPaginatedFolders,
@@ -46,17 +45,6 @@ const FileManager = () => {
       path: "root",
     },
   ]);
-  const getFolderPopOverContent = (folderName: string) => (
-    <div className="p-1">
-      <p>
-        <strong>Path: </strong>
-        {}
-      </p>
-      <p className="text-xs text-gray-500">
-        Click to view contents of {folderName}
-      </p>
-    </div>
-  );
 
   useEffect(() => {
     const loadRoot = async () => {
@@ -117,7 +105,23 @@ const FileManager = () => {
     setExpandedKeys(keysToExpand);
   };
   // DATA FROM FILENET
-
+  const {
+    data: folderPages,
+    fetchNextPage,
+    hasNextPage,
+    refetch,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["folders", selectedFolderId, searchTerm],
+    queryFn: ({ pageParam = 0 }) =>
+      fetchPaginatedFolders(selectedFolderId, pageParam, 5, searchTerm),
+    getNextPageParam: (lastPage) =>
+      lastPage.hasNextPage ? lastPage.continuanceToken : undefined,
+    staleTime: searchTerm ? 0 : 1000 * 60 * 5, // 5 minutes
+    cacheTime: searchTerm ? 0 : 1000 * 60 * 1,
+    enabled: !!selectedFolderId,
+  });
+  console.log("Paginated Folders", folderPages);
   const {
     data: paginatedData,
     isLoading,
@@ -134,17 +138,11 @@ const FileManager = () => {
   const totalFiles = paginatedData?.hasNextPage
     ? currentPage * pageSize + 1
     : (currentPage - 1) * pageSize + tableData.length;
-  console.log("Total files", paginatedData, totalFiles);
+  console.log("Paginated Data", paginatedData, totalFiles);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedFolderId]);
-  useEffect(() => {
-    const delayFn = setTimeout(() => {
-      setCurrentPage(1);
-    }, 1000);
-    return () => clearTimeout(delayFn);
-  }, [searchTerm]);
+  // useEffect(() => {
+  //   setCurrentPage(1);
+  // }, [selectedFolderId]);
   const updateTreeData = (
     list: TreeNode[],
     key: React.Key,
@@ -157,7 +155,7 @@ const FileManager = () => {
           children,
         };
       }
-
+      console.log("Node from children", node.children);
       if (node.children) {
         return {
           ...node,
@@ -168,22 +166,17 @@ const FileManager = () => {
       return node;
     });
   };
-  const {
-    data: folderPages,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ["folders", selectedFolderId, searchTerm],
-    queryFn: ({ pageParam = 0 }) =>
-      fetchPaginatedFolders(selectedFolderId, pageParam, 5, searchTerm),
-    getNextPageParam: (lastPage) =>
-      lastPage.hasNextPage ? lastPage.continuanceToken : undefined,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    cacheTime: 1000 * 60 * 30,
-    enabled: !!selectedFolderId,
-  });
-  console.log("Paginated Folders", folderPages);
+  useEffect(() => {
+    const delayFn = setTimeout(() => {
+      if (selectedFolderId) {
+        setTreeData((origin) => updateTreeData(origin, selectedFolderId, []));
+        refetch();
+      }
+      setCurrentPage(1);
+    }, 400);
+    return () => clearTimeout(delayFn);
+  }, [searchTerm]);
+
   useEffect(() => {
     const firstFolder = folderPages?.pages?.[0]?.folders?.[0];
 
@@ -215,6 +208,69 @@ const FileManager = () => {
       setExpandedKeys((prev) => Array.from(new Set([...prev, parentId!])));
     }
   }, [folderPages, searchTerm]);
+
+  // useEffect(() => {
+  //   if (!folderPages || !selectedFolderId) return;
+
+  //   // 1. Flatten all pages to get the full list (e.g., all 9 folders)
+  //   const allFolders = folderPages.pages.flatMap((page) => page.folders || []);
+  //   const firstFolder = allFolders[0];
+
+  //   // 2. Map folders to TreeNodes
+  //   const newNodes: TreeNode[] = allFolders.map((f: any) => ({
+  //     title: f.name,
+  //     key: f.id,
+  //     IdFolder: f.id,
+  //     isLeaf: false,
+  //     parentId: selectedFolderId,
+  //     icon: getFolderIcon(f.type),
+  //     path: selectedPath === "root" ? f.name : `${selectedPath}/${f.name}`,
+  //   }));
+
+  //   // 3. Update the tree - This appends Page 2 to Page 1 in the UI
+  //   setTreeData((origin) => updateTreeData(origin, selectedFolderId, newNodes));
+
+  //   // 4. ALWAYS Expand the parent (selectedFolderId) so children are visible
+  //   // This ensures that on "Load More", the list stays open.
+  //   setExpandedKeys((prev) => Array.from(new Set([...prev, selectedFolderId])));
+
+  //   // 5. Search-Specific Logic
+  //   if (firstFolder) {
+  //     setSelectedFolderId(firstFolder.id);
+  //     setSelectedPath(
+  //       selectedPath === "root"
+  //         ? firstFolder.name
+  //         : `${selectedPath}/${firstFolder.name}`,
+  //     );
+
+  //     // Also expand the newly selected first folder from search results
+  //     setExpandedKeys((prev) => Array.from(new Set([...prev, firstFolder.id])));
+  //   }
+  // }, [folderPages, searchTerm, selectedFolderId]);
+
+  // useEffect(() => {
+  //   if (!folderPages?.pages?.length || !selectedFolderId) return;
+
+  //   const allFolders = folderPages.pages.flatMap((page) => page.folders);
+
+  //   const newNodes: TreeNode[] = allFolders.map((f: any) => ({
+  //     title: f.name,
+  //     key: f.id,
+  //     IdFolder: f.id,
+  //     isLeaf: false,
+  //     parentId: selectedFolderId,
+  //     icon: getFolderIcon(f.type),
+  //     path: selectedPath === "root" ? f.name : `${selectedPath}/${f.name}`,
+  //   }));
+
+  //   setTreeData((origin) => updateTreeData(origin, selectedFolderId, newNodes));
+  //   setExpandedKeys((prev) =>
+  //     Array.from(new Set([...prev, selectedFolderId!])),
+  //   );
+  // }, [folderPages, selectedFolderId]);
+
+  console.log("TREE DATA", treeData);
+
   return (
     <div className="max-w-6xl mx-auto  p-6 bg-neutral-50 border border-slate-200 rounded-md shadow-md">
       <h2 className="text-2xl font-semibold mb-4">File Manager</h2>
@@ -237,6 +293,7 @@ const FileManager = () => {
               className="pb-4"
               placeholder="Input Folder Name"
               loading={isFetchingNextPage}
+              allowClear
               onChange={(e) => setSearchterm(e.target.value)}
             ></Search>
             <Tree
@@ -244,46 +301,25 @@ const FileManager = () => {
               expandedKeys={expandedKeys}
               blockNode
               onExpand={(keys) => setExpandedKeys(keys)}
-              // loadData={async (node) => {
-              //   if (node.children) return;
-              //   const folderId = node.key as string;
-
-              //   const response = await fetchFolderContent(folderId);
-              //   const children = response.folders.map((folder) => ({
-              //     title: folder.name,
-              //     key: folder.id,
-              //     IdFolder: folder.id,
-              //     isLeaf: false,
-              //     parentId: node.key as string,
-              //     icon: getFolderIcon(folder.type),
-              //     path:
-              //       node.path === "root"
-              //         ? folder.name
-              //         : `${node.path}/${folder.name}`,
-              //   }));
-              //   console.log("All children", children);
-              //   setTreeData((origin) =>
-              //     updateTreeData(origin, node.key, children),
-              //   );
-              // }}
               loadData={async (node) => {
-                if (node.children) return;
-                if (hasNextPage) {
-                  await fetchNextPage();
-                }
+                // if (node.children) return;
+                // setSelectedFolderId(node.key as string);
+
+                if (node.children?.length) return;
 
                 let nextPage = 0;
-                let allChildren: TreeNode[] = [];
+                const allChildren: TreeNode[] = [];
 
-                while (true) {
-                  const response = await fetchPaginatedFolders(
-                    node.key as string,
-                    nextPage,
-                    10,
-                    searchTerm,
-                  );
+                const response = await fetchPaginatedFolders(
+                  node.key as string,
+                  nextPage,
+                  5, // pageSize for tree
+                  searchTerm,
+                );
 
-                  const children = response.folders.map((folder) => ({
+                // Map response folders to TreeNode
+                const childrenNodes: TreeNode[] = response.folders.map(
+                  (folder) => ({
                     title: folder.name,
                     key: folder.id,
                     IdFolder: folder.id,
@@ -294,17 +330,68 @@ const FileManager = () => {
                       node.path === "root"
                         ? folder.name
                         : `${node.path}/${folder.name}`,
-                  }));
-                  allChildren = [...allChildren, ...children];
-
-                  if (!response.hasNextPage) break;
-                  console.log("All children", allChildren);
-                  nextPage = parseInt(response.continuanceToken);
-                }
+                  }),
+                );
 
                 setTreeData((origin) =>
-                  updateTreeData(origin, node.key, allChildren),
+                  updateTreeData(origin, node.key, childrenNodes),
                 );
+
+                node["__nextPage"] = response.hasNextPage
+                  ? parseInt(response.continuanceToken!)
+                  : null;
+                console.log("Node from inside loadData", node);
+                // if (hasNextPage) {
+                //   await fetchNextPage();
+                // }
+
+                // let nextPage = 0;
+                // let allChildren: TreeNode[] = [];
+
+                // while (true) {
+                //   const response = await fetchPaginatedFolders(
+                //     node.key as string,
+                //     nextPage,
+                //     10,
+                //     searchTerm,
+                //   );
+
+                //   const children = response.folders.map((folder) => ({
+                //     title: (
+                //       <Popover
+                //         title="Folder info"
+                //         placement="right"
+                //         mouseEnterDelay={0.5}
+                //         content={getFolderPopOverContent(
+                //           folder.name,
+                //           node.path === "root"
+                //             ? folder.name
+                //             : `${node.path}/${folder.name}`,
+                //         )}
+                //       >
+                //         <span>{folder.name}</span>
+                //       </Popover>
+                //     ),
+                //     key: folder.id,
+                //     IdFolder: folder.id,
+                //     isLeaf: false,
+                //     parentId: node.key as string,
+                //     icon: getFolderIcon(folder.type),
+                //     path:
+                //       node.path === "root"
+                //         ? folder.name
+                //         : `${node.path}/${folder.name}`,
+                //   }));
+                //   allChildren = [...allChildren, ...children];
+
+                //   if (!response.hasNextPage) break;
+                //   console.log("All children", allChildren);
+                //   nextPage = parseInt(response.continuanceToken);
+                // }
+
+                // setTreeData((origin) =>
+                //   updateTreeData(origin, node.key, allChildren),
+                // );
               }}
               selectedKeys={selectedFolderId ? [selectedFolderId] : []}
               onSelect={(keys, info) => {
@@ -320,6 +407,25 @@ const FileManager = () => {
               expandAction="click"
               defaultExpandAll={false}
             />
+            {hasNextPage && (
+              <div className="mt-3 flex justify-center">
+                <Button
+                  loading={isFetchingNextPage}
+                  onClick={() => {
+                    fetchNextPage();
+                    // updateTreeData(
+                    //   treeData,
+                    //   selectedFolderId ?? "",
+                    //   folderPages,
+                    // );
+                  }}
+                  type="dashed"
+                  block
+                >
+                  Load More Folders
+                </Button>
+              </div>
+            )}
           </div>
         )}
         {/* Right Div */}
