@@ -1,0 +1,201 @@
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { Button, Spin } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import { fetchPaginatedFolders } from "../api/apiCall";
+import type { FileItemDTO } from "../types/FileManagerTypes";
+import { useFolderTreeContext } from "../context/FolderTreeContext";
+
+interface FolderPage {
+  folders: FileItemDTO[];
+  hasNextPage: boolean;
+  continuanceToken?: string | null;
+}
+
+interface FolderProps {
+  folderId: string;
+  folderName: string;
+  defaultExpanded?: boolean;
+  pageSize?: number;
+  level?: number;
+  breadcrumbs?: { id: string; name: string }[];
+}
+
+const toPageNumber = (value: string | number | null | undefined) => {
+  const page = Number(value);
+  return Number.isFinite(page) ? page : null;
+};
+
+const loadFolderPage = async (
+  folderId: string,
+  pageNum: number,
+  pageSize: number,
+  searchTerm: string,
+): Promise<FolderPage> => {
+  const response = (await fetchPaginatedFolders(
+    folderId,
+    pageNum,
+    pageSize,
+    searchTerm,
+  )) as Partial<FolderPage>;
+
+  return {
+    folders: response.folders ?? [],
+    hasNextPage: Boolean(response.hasNextPage),
+    continuanceToken: response.continuanceToken ?? null,
+  };
+};
+
+const Folder = ({
+  folderId,
+  folderName,
+  defaultExpanded = false,
+  pageSize = 5,
+  level = 0,
+}: FolderProps) => {
+  const { selectedFolderId, setSelectedFolderId, folderSearchText } =
+    useFolderTreeContext();
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [innerSearchTerm, setInnerSearchTerm] = useState("");
+  const {
+    data,
+    isLoading,
+    isError,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["folder-children", folderId, innerSearchTerm, pageSize],
+    queryFn: ({ pageParam = 0 }) =>
+      loadFolderPage(
+        folderId,
+        toPageNumber(pageParam) ?? 0,
+        pageSize,
+        innerSearchTerm,
+      ),
+    getNextPageParam: (lastPage) => {
+      if (!lastPage.hasNextPage) {
+        return undefined;
+      }
+
+      return toPageNumber(lastPage.continuanceToken);
+    },
+    enabled: expanded,
+  });
+
+  const childFolders = useMemo(
+    () => data?.pages.flatMap((page) => page.folders) ?? [],
+    [data],
+  );
+  const isSelected = selectedFolderId === folderId;
+
+  useEffect(() => {
+    if (!(expanded && selectedFolderId === folderId)) {
+      if (expanded && innerSearchTerm) {
+        setInnerSearchTerm(""); // reset search term when collapsing or selecting another folder
+      }
+      return; // only set search term if this folder is expanded and selected
+    }
+
+    const timeout = setTimeout(() => {
+      setInnerSearchTerm(folderSearchText);
+    }, 300); // debounce delay
+
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folderSearchText, expanded, selectedFolderId, folderId]);
+  return (
+    <div>
+      <div
+        className={`flex items-center gap-2 py-1 cursor-pointer ${isSelected ? "font-semibold text-blue-600" : "text-slate-700"}`}
+        style={{ paddingLeft: `${level * 16}px` }}
+      >
+        <Button
+          type="text"
+          size="small"
+          style={{
+            color: "inherit",
+          }}
+          onClick={() => {
+            setExpanded((prev) => !prev);
+          }}
+        >
+          {expanded ? "▾" : "▸"}
+        </Button>
+        <button
+          type="button"
+          className={`text-left text-sm`}
+          onClick={() => {
+            setExpanded((prev) => !prev);
+            setSelectedFolderId(folderId);
+          }}
+        >
+          {folderName}
+        </button>
+      </div>
+
+      {expanded && (
+        <div>
+          {isLoading && (
+            <div
+              className="py-1"
+              style={{ paddingLeft: `${(level + 1) * 16}px` }}
+            >
+              <Spin size="small" />
+            </div>
+          )}
+
+          {isError && (
+            <div
+              className="text-xs text-red-500 py-1"
+              style={{ paddingLeft: `${(level + 1) * 16}px` }}
+            >
+              Failed to load folders.
+            </div>
+          )}
+
+          {childFolders.map((subFolder) => (
+            <Folder
+              key={subFolder.id}
+              folderId={subFolder.id}
+              folderName={subFolder.name}
+              pageSize={pageSize}
+              level={level + 1}
+              // breadcrumbs={[...breadcrumb, {
+              //   id:,
+              //   file
+              // }}
+              // defaultExpanded
+            />
+          ))}
+          {childFolders.length === 0 && !isLoading && (
+            <div
+              className="text-xs text-gray-500 py-1"
+              style={{ paddingLeft: `${(level + 1) * 16}px` }}
+            >
+              No folders found.
+            </div>
+          )}
+          {hasNextPage && (
+            <div
+              className="py-1"
+              style={{ paddingLeft: `${(level + 1) * 16}px` }}
+            >
+              <Button
+                size="small"
+                type="dashed"
+                loading={isFetchingNextPage}
+                onClick={() => {
+                  fetchNextPage();
+                }}
+              >
+                Load more
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Folder;
