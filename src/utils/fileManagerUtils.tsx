@@ -10,6 +10,9 @@ import {
 } from "@ant-design/icons";
 import React from "react";
 import type TreeNode from "../types/TreeNode";
+import type { FileItemDTO } from "../types/FileManagerTypes";
+import { fetchFileContent } from "../api/apiCall";
+import { Modal } from "antd";
 export const getFolderIcon = (type?: string) => {
   switch (type) {
     case "videos":
@@ -159,6 +162,40 @@ export const getFolderPopOverContent = (
     </p>
   </div>
 );
+
+export const handleFileOpen = async (
+  file: FileItemDTO,
+  openPreview: (url: string, type: string) => void,
+) => {
+  const response = await fetchFileContent(file.id);
+
+  const contentType = response.headers["content-type"];
+
+  const blob = new Blob([response.data], { type: contentType });
+  const url = window.URL.createObjectURL(blob);
+
+  const canPreview =
+    contentType.startsWith("image/") ||
+    contentType === "application/pdf" ||
+    contentType === "text/plain";
+
+  if (canPreview) {
+    openPreview(url, contentType);
+  } else {
+    Modal.confirm({
+      title: "Download file",
+      content: `Do you want to download ${file.name}?`,
+      okText: "Download",
+      cancelText: "Cancel",
+      onOk: () => {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = file.name;
+        link.click();
+      },
+    });
+  }
+};
 
 //Legacy - Used for dummy data
 export const buildTree = (path: string): TreeNode[] => {

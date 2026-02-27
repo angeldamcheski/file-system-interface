@@ -20,11 +20,12 @@ import {
   Spin,
   Input,
   Typography,
+  Modal,
 } from "antd";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 
-import { getFileIcon } from "../utils/fileManagerUtils";
+import { getFileIcon, handleFileOpen } from "../utils/fileManagerUtils";
 import type TreeNode from "../types/TreeNode";
 import FolderPanelManager from "./FolderPanelManager";
 import { useFolderTreeContext } from "../context/FolderTreeContext";
@@ -51,7 +52,12 @@ const FileManager = () => {
       path: "root",
     },
   ]);
-
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewType, setPreviewType] = useState<string | null>(null);
+  const openPreview = (url: string, type: string) => {
+    setPreviewUrl(url);
+    setPreviewType(type);
+  };
   const { breadcrumbs, selectedFolderId, setSelectedFolderId } =
     useFolderTreeContext();
 
@@ -62,10 +68,13 @@ const FileManager = () => {
       title: "Name",
       dataIndex: "name",
       key: "name",
-      render: (text: string) => (
-        <span className="flex items-center gap-2">
-          {getFileIcon(text)}
-          {text}
+      render: (_: string, record: FileItemDTO) => (
+        <span
+          className="flex items-center gap-2 text-blue-600 hover:underline cursor-pointer"
+          onClick={() => handleFileOpen(record, openPreview)}
+        >
+          {getFileIcon(record.name)}
+          {record.name}
         </span>
       ),
     },
@@ -238,6 +247,41 @@ const FileManager = () => {
               locale={{ emptyText: "No files in this folder" }}
               className="hover:cursor-pointer text-wrap "
             />
+            <Modal
+              open={!!previewUrl}
+              footer={null}
+              width="80%"
+              onCancel={() => {
+                if (previewUrl) {
+                  window.URL.revokeObjectURL(previewUrl);
+                }
+                setPreviewUrl(null);
+                setPreviewType(null);
+              }}
+            >
+              {previewType?.startsWith("image/") && (
+                <img src={previewUrl!} alt="preview" className="w-full" />
+              )}
+
+              {previewType === "application/pdf" && (
+                <iframe
+                  src={previewUrl!}
+                  title="PDF Preview"
+                  width="100%"
+                  height="600px"
+                  className="rounded-xl shadow-lg"
+                />
+              )}
+
+              {previewType === "text/plain" && (
+                <iframe
+                  src={previewUrl!}
+                  title="Text Preview"
+                  width="100%"
+                  height="600px"
+                />
+              )}
+            </Modal>
           </Spin>
         </div>
       </div>

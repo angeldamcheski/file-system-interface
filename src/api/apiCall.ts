@@ -49,3 +49,15 @@ export const fetchPaginatedFolders = async (
   console.log("Paginated folders response", response.data);
   return response.data;
 };
+
+export const fetchFileContent = async (
+  documentId: string,
+  disposition: "inline" | "attachment" = "inline",
+) => {
+  const response = await apiClient.get("/files/content", {
+    params: { documentId, disposition },
+    responseType: "blob",
+  });
+  console.log("BLOB RESPONSE: ", response.data);
+  return response;
+};
