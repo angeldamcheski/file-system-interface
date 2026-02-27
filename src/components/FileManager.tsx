@@ -8,10 +8,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
-import {
-  fetchPaginatedFolderContent,
-  fetchPaginatedFolders,
-} from "../api/apiCall";
+import { fetchPaginatedFolderContent } from "../api/apiCall";
 import {
   Breadcrumb,
   Table,
@@ -22,7 +19,7 @@ import {
   Typography,
   Modal,
 } from "antd";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 
 import { getFileIcon, handleFileOpen } from "../utils/fileManagerUtils";
@@ -97,27 +94,7 @@ const FileManager = () => {
     setSelectedFolderId(folderId);
   };
   // DATA FROM FILENET
-  const {
-    data: folderPages,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    fetchNextPage,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    hasNextPage,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    refetch,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ["folders", selectedFolderId, searchTerm],
-    queryFn: ({ pageParam = 0 }) =>
-      fetchPaginatedFolders(selectedFolderId, pageParam, 5, searchTerm),
-    getNextPageParam: (lastPage) =>
-      lastPage.hasNextPage ? lastPage.continuanceToken : undefined,
-    staleTime: searchTerm ? 0 : 1000 * 60 * 5, // 5 minutes
-    cacheTime: searchTerm ? 0 : 1000 * 60 * 1,
-    enabled: !!selectedFolderId,
-  });
-  console.log("Paginated Folders", folderPages);
+
   const {
     data: paginatedData,
     isLoading,
@@ -128,6 +105,7 @@ const FileManager = () => {
       fetchPaginatedFolderContent(selectedFolderId, currentPage - 1, pageSize),
     staleTime: 1000 * 60 * 5,
     cacheTime: 1000 * 60 * 30,
+    enabled: !!selectedFolderId,
     placeholderData: (previousData: FileItemDTO[]) => previousData,
   });
   const tableData = paginatedData?.files ?? [];
@@ -250,6 +228,7 @@ const FileManager = () => {
             <Modal
               open={!!previewUrl}
               footer={null}
+              centered={true}
               width="75%"
               onCancel={() => {
                 if (previewUrl) {
