@@ -104,12 +104,12 @@ const Folder = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [folderId, folderName, JSON.stringify(parentBreadcrumbs)]);
 
-  console.log("TEST allo", currentBreadcrumbs);
-
+  console.log("Current breadcrumbs", currentBreadcrumbs);
   const childFolders = useMemo(
     () => data?.pages.flatMap((page) => page.folders) ?? [],
     [data],
   );
+
   const isSelected = selectedFolderId === folderId;
 
   useEffect(() => {
@@ -144,7 +144,7 @@ const Folder = ({
     <div>
       <div
         className={`flex items-center gap-2 py-1  cursor-pointer ${isSelected ? "font-semibold text-blue-600 bg-blue-100 hover:bg-blue-100 rounded-md " : "text-slate-700 hover:bg-neutral-50"} hover:cursor-pointer`}
-        style={{ paddingLeft: `${level * 16}px` }}
+        style={{ paddingLeft: `${level * 14}px` }}
         onClick={() => {
           setSelectedFolderId(folderId);
         }}
@@ -225,7 +225,7 @@ const Folder = ({
             >
               <Button
                 size="small"
-                type="dashed"
+                type="default"
                 loading={isFetchingNextPage}
                 onClick={() => {
                   fetchNextPage();

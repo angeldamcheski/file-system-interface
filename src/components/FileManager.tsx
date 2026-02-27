@@ -250,7 +250,7 @@ const FileManager = () => {
             <Modal
               open={!!previewUrl}
               footer={null}
-              width="80%"
+              width="75%"
               onCancel={() => {
                 if (previewUrl) {
                   window.URL.revokeObjectURL(previewUrl);
@@ -258,9 +258,27 @@ const FileManager = () => {
                 setPreviewUrl(null);
                 setPreviewType(null);
               }}
+              styles={{
+                body: {
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "80vh",
+                  padding: 0,
+                },
+              }}
             >
               {previewType?.startsWith("image/") && (
-                <img src={previewUrl!} alt="preview" className="w-full" />
+                <img
+                  src={previewUrl!}
+                  alt="preview"
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "100%",
+                    objectFit: "contain",
+                    borderRadius: "4px",
+                  }}
+                />
               )}
 
               {previewType === "application/pdf" && (
@@ -269,7 +287,7 @@ const FileManager = () => {
                   title="PDF Preview"
                   width="100%"
                   height="600px"
-                  className="rounded-xl shadow-lg"
+                  className="rounded-md shadow-lg"
                 />
               )}
 

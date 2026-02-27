@@ -187,6 +187,8 @@ export const handleFileOpen = async (
       content: `Do you want to download ${file.name}?`,
       okText: "Download",
       cancelText: "Cancel",
+      centered: true,
+      keyboard: true,
       onOk: () => {
         const link = document.createElement("a");
         link.href = url;
