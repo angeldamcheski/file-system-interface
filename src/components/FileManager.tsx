@@ -55,7 +55,7 @@ const FileManager = () => {
     setPreviewUrl(url);
     setPreviewType(type);
   };
-  const { breadcrumbs, selectedFolderId, setSelectedFolderId } =
+  const { breadcrumbs, selectedFolderId, setSelectedFolderId, setBreadcrumbs } =
     useFolderTreeContext();
 
   console.log(breadcrumbs, "Breadcrumbs list");
@@ -65,15 +65,30 @@ const FileManager = () => {
       title: "Name",
       dataIndex: "name",
       key: "name",
-      render: (_: string, record: FileItemDTO) => (
-        <span
-          className="flex items-center gap-2 text-blue-600 hover:underline cursor-pointer"
-          onClick={() => handleFileOpen(record, openPreview)}
-        >
-          {getFileIcon(record.name)}
-          {record.name}
-        </span>
-      ),
+      render: (_: string, record: FileItemDTO) => {
+        const isFolder = record.type === "folder";
+        return (
+          <span
+            className={`flex items-center gap-2 cursor-pointer ${isFolder ? "text-slate-800" : "text-blue-600 hover:underline "} `}
+            // onClick={() => handleFileOpen(record, openPreview)}
+            onClick={() => {
+              if (isFolder) {
+                setSelectedFolderId(record.id);
+                setCurrentPage(1);
+              } else {
+                handleFileOpen(record, openPreview);
+              }
+            }}
+          >
+            {isFolder ? (
+              <FolderOutlined style={{ color: "#3b82f6" }} />
+            ) : (
+              getFileIcon(record.name)
+            )}
+            {record.name}
+          </span>
+        );
+      },
     },
     {
       title: "Size",
@@ -108,14 +123,8 @@ const FileManager = () => {
     enabled: !!selectedFolderId,
     placeholderData: (previousData: FileItemDTO[]) => previousData,
   });
-  const tableData = paginatedData?.files ?? [];
-  const totalFiles = paginatedData?.hasNextPage
-    ? currentPage * pageSize + 1
-    : (currentPage - 1) * pageSize + tableData.length;
-  console.log("Paginated Data", paginatedData, totalFiles);
-  console.log("Selected folder id", selectedFolderId);
+  const tableData = paginatedData?.items ?? [];
 
-  console.log("TREE DATA", treeData);
   const formattedBreadcrumbs = useMemo(() => {
     return breadcrumbs.map((b) => `${b.title}/`);
   }, [breadcrumbs]);
@@ -203,8 +212,9 @@ const FileManager = () => {
               pagination={{
                 current: currentPage,
                 pageSize: pageSize,
-                total: totalFiles,
+                total: paginatedData?.totalItems,
                 showSizeChanger: true,
+
                 placement: ["bottomCenter"],
                 onChange: (page, size) => {
                   if (size !== pageSize) {
@@ -220,9 +230,25 @@ const FileManager = () => {
                 },
                 pageSizeOptions: ["5", "10", "15", "20"],
               }}
+              onRow={(record, rowIndex) => {
+                return {
+                  onClick: () => {
+                    setSelectedFolderId(record.id);
+                    setBreadcrumbs([
+                      ...breadcrumbs,
+                      { id: record.id, title: record.name },
+                    ]);
+                  },
+                };
+              }}
               rowKey="id"
               loading={isFetching}
               locale={{ emptyText: "No files in this folder" }}
+              rowClassName={(record) =>
+                record.type === "folder"
+                  ? "hover:shadow-sm hover:rounded transition-all"
+                  : "hover:shadow-sm hover:rounded transition-all"
+              }
               className="hover:cursor-pointer text-wrap "
             />
             <Modal

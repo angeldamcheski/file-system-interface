@@ -27,13 +27,14 @@ export const fetchPaginatedFolderContent = async (
   pageNum: number = 0,
   pageSize: number | null = 10,
 ) => {
-  const response = await apiClient.get("/paginated-contents", {
+  const response = await apiClient.get("/list-paginated", {
     params: {
       parentId: folderId,
       pageSize: pageSize,
       pageNum: pageNum,
     },
   });
+  console.log("LIST PAGINATED", response);
   return response.data;
 };
 
@@ -61,3 +62,19 @@ export const fetchFileContent = async (
   console.log("BLOB RESPONSE: ", response.data);
   return response;
 };
+
+//@Legacy Not used anymore
+// export const fetchPaginatedFolderContent = async (
+//   folderId: string | null,
+//   pageNum: number = 0,
+//   pageSize: number | null = 10,
+// ) => {
+//   const response = await apiClient.get("/paginated-contents", {
+//     params: {
+//       parentId: folderId,
+//       pageSize: pageSize,
+//       pageNum: pageNum,
+//     },
+//   });
+//   return response.data;
+// };

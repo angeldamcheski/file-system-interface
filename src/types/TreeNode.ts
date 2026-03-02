@@ -8,3 +8,4 @@ export default interface TreeNode {
   isLeaf?: boolean;
   icon?: React.ReactNode;
 }
+//We can use getPath() on every folder from FileNet instead of building manually the path
