@@ -233,6 +233,9 @@ const FileManager = () => {
               onRow={(record, rowIndex) => {
                 return {
                   onClick: () => {
+                    if (record.type === "file") {
+                      return;
+                    }
                     setSelectedFolderId(record.id);
                     setBreadcrumbs([
                       ...breadcrumbs,
