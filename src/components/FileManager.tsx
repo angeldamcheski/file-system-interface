@@ -55,8 +55,13 @@ const FileManager = () => {
     setPreviewUrl(url);
     setPreviewType(type);
   };
-  const { breadcrumbs, selectedFolderId, setSelectedFolderId, setBreadcrumbs } =
-    useFolderTreeContext();
+  const {
+    breadcrumbs,
+    selectedFolderId,
+    setSelectedFolderId,
+    setBreadcrumbs,
+    addFolderToTree,
+  } = useFolderTreeContext();
 
   console.log(breadcrumbs, "Breadcrumbs list");
 

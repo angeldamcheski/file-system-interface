@@ -22,7 +22,7 @@ const FolderPanelManager = () => {
     if (!rootFolder) return;
 
     setSelectedFolderId(rootFolder?.id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rootFolder]);
 
   return (

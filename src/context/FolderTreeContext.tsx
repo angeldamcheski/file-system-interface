@@ -7,6 +7,7 @@ import {
   type ReactNode,
   type SetStateAction,
 } from "react";
+import type { FileItemDTO } from "../types/FileManagerTypes";
 
 interface FolderTreeContextValue {
   selectedFolderId: string | null;
@@ -34,6 +35,9 @@ interface FolderTreeContextValue {
 
   folderSearchText: string;
   setFolderSearchText: Dispatch<SetStateAction<string>>;
+
+  knownFolders: Record<string, FileItemDTO>;
+  addFolderToTree: (folder: FileItemDTO) => void;
 }
 const FolderTreeContext = createContext<FolderTreeContextValue | undefined>(
   undefined,
@@ -52,7 +56,6 @@ export const FolderTreeProvider = ({
   );
 
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
-
   const value = useMemo(
     () => ({
       selectedFolderId,
