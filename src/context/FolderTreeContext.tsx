@@ -36,8 +36,8 @@ interface FolderTreeContextValue {
   folderSearchText: string;
   setFolderSearchText: Dispatch<SetStateAction<string>>;
 
-  knownFolders: Record<string, FileItemDTO>;
-  addFolderToTree: (folder: FileItemDTO) => void;
+  knownFolders: Record<string, FileItemDTO[]>;
+  addDiscoveredFolders: (parentId: string, folders: FileItemDTO[]) => void;
 }
 const FolderTreeContext = createContext<FolderTreeContextValue | undefined>(
   undefined,
@@ -54,7 +54,18 @@ export const FolderTreeProvider = ({
   const [folderSearchText, setFolderSearchText] = useState(
     initialFolderSearchText,
   );
-
+  const [knownFolders, setKnownFolders] = useState<
+    Record<string, FileItemDTO[]>
+  >({});
+  const addDiscoveredFolders = (parentId: string, folders: FileItemDTO[]) => {
+    setKnownFolders((prev) => {
+      const existing = prev[parentId] || [];
+      const folderMap = new Map(
+        [...existing, ...folders].map((f) => [f.id, f]),
+      );
+      return { ...prev, [parentId]: Array.from(folderMap.values()) };
+    });
+  };
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
   const value = useMemo(
     () => ({
@@ -64,8 +75,10 @@ export const FolderTreeProvider = ({
       setFolderSearchText,
       breadcrumbs,
       setBreadcrumbs,
+      knownFolders,
+      addDiscoveredFolders,
     }),
-    [selectedFolderId, folderSearchText, breadcrumbs],
+    [selectedFolderId, folderSearchText, breadcrumbs, knownFolders],
   );
 
   return (

@@ -60,7 +60,7 @@ const FileManager = () => {
     selectedFolderId,
     setSelectedFolderId,
     setBreadcrumbs,
-    addFolderToTree,
+    addDiscoveredFolders,
   } = useFolderTreeContext();
 
   console.log(breadcrumbs, "Breadcrumbs list");
@@ -241,6 +241,7 @@ const FileManager = () => {
                     if (record.type === "file") {
                       return;
                     }
+                    addDiscoveredFolders(selectedFolderId!, [record]);
                     setSelectedFolderId(record.id);
                     setBreadcrumbs([
                       ...breadcrumbs,

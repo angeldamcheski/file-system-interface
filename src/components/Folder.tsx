@@ -63,6 +63,7 @@ const Folder = ({
     setBreadcrumbs,
     folderSearchText,
     knownFolders,
+    addDiscoveredFolders,
   } = useFolderTreeContext();
 
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -93,7 +94,14 @@ const Folder = ({
     },
     enabled: expanded,
   });
-
+  useEffect(() => {
+    if (data?.pages) {
+      const allFetched = data.pages.flatMap((page) => page.folders);
+      if (allFetched.length > 0) {
+        addDiscoveredFolders(folderId, allFetched);
+      }
+    }
+  }, [data, folderId]);
   const currentBreadcrumbs = useMemo(() => {
     return [
       ...parentBreadcrumbs,
@@ -106,55 +114,57 @@ const Folder = ({
   }, [folderId, folderName, JSON.stringify(parentBreadcrumbs)]);
 
   console.log("Current breadcrumbs", currentBreadcrumbs);
-  // const childFolders = useMemo(
-  //   () => data?.pages.flatMap((page) => page.folders) ?? [],
-  //   [data],
-  // );
-  // const childFolders = useMemo(() => {
-  //   const fetchedFolders = data?.pages.flatMap((page) => page.folders) ?? [];
-  //   const currentIndex = breadcrumbs.findIndex((b) => b.id === folderId);
-  //   const nextFolderInPath = breadcrumbs[currentIndex + 1];
-  //   if (
-  //     nextFolderInPath &&
-  //     nextFolderInPath.id !== folderId &&
-  //     !fetchedFolders.some((f) => f.id === nextFolderInPath.id)
-  //   ) {
-  //     const ghostFolder: FileItemDTO = {
-  //       id: nextFolderInPath.id,
-  //       name: nextFolderInPath.title,
-  //       type: "folder",
-  //     };
-  //     return [...fetchedFolders, ghostFolder];
-  //   }
-  //   return fetchedFolders;
-  // }, [data, breadcrumbs, folderId]);
-
-  // WORKING
   const childFolders = useMemo(() => {
-    const fetchedFolders = data?.pages.flatMap((page) => page.folders) ?? [];
+    const remembered = knownFolders[folderId] ?? [];
 
     const currentIndex = breadcrumbs.findIndex((b) => b.id === folderId);
+    const nextFolderInPath =
+      currentIndex !== -1 ? breadcrumbs[currentIndex + 1] : null;
 
-    if (currentIndex !== -1) {
-      const nextFolderInPath = breadcrumbs[currentIndex + 1];
+    const finalFolders = [...remembered];
 
-      if (
-        nextFolderInPath &&
-        !fetchedFolders.some((f) => f.id === nextFolderInPath.id)
-      ) {
-        if (nextFolderInPath.id !== folderId) {
-          const ghostFolder: FileItemDTO = {
-            id: nextFolderInPath.id,
-            name: nextFolderInPath.title,
-            type: "folder",
-          };
-          return [...fetchedFolders, ghostFolder];
-        }
+    if (nextFolderInPath) {
+      const alreadyExists = finalFolders.some(
+        (f) => f.id === nextFolderInPath.id,
+      );
+      if (!alreadyExists && nextFolderInPath.id !== folderId) {
+        finalFolders.push({
+          id: nextFolderInPath.id,
+          name: nextFolderInPath.title,
+          type: "folder",
+        });
       }
     }
 
-    return fetchedFolders;
-  }, [data, breadcrumbs, folderId]);
+    return finalFolders;
+  }, [knownFolders, breadcrumbs, folderId]);
+
+  // WORKING
+  // const childFolders = useMemo(() => {
+  //   const fetchedFolders = data?.pages.flatMap((page) => page.folders) ?? [];
+
+  //   const currentIndex = breadcrumbs.findIndex((b) => b.id === folderId);
+
+  //   if (currentIndex !== -1) {
+  //     const nextFolderInPath = breadcrumbs[currentIndex + 1];
+
+  //     if (
+  //       nextFolderInPath &&
+  //       !fetchedFolders.some((f) => f.id === nextFolderInPath.id)
+  //     ) {
+  //       if (nextFolderInPath.id !== folderId) {
+  //         const ghostFolder: FileItemDTO = {
+  //           id: nextFolderInPath.id,
+  //           name: nextFolderInPath.title,
+  //           type: "folder",
+  //         };
+  //         return [...fetchedFolders, ghostFolder];
+  //       }
+  //     }
+  //   }
+
+  //   return fetchedFolders;
+  // }, [data, breadcrumbs, folderId]);
 
   const isSelected = selectedFolderId === folderId;
 
