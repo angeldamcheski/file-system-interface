@@ -3,32 +3,20 @@ import {
   EditOutlined,
   DeleteOutlined,
   PlusOutlined,
-  ColumnHeightOutlined,
-  ColumnWidthOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
 } from "@ant-design/icons";
-import { fetchPaginatedFolderContent } from "../api/apiCall";
 import {
-  Breadcrumb,
-  Table,
-  Button,
-  Space,
-  Spin,
-  Input,
-  Typography,
-  Modal,
-} from "antd";
+  fetchFolderPath,
+  fetchPaginatedFolderContent,
+  fetchRootFolder,
+} from "../api/apiCall";
+import { Breadcrumb, Table, Button, Space, Spin, Modal } from "antd";
+import Search from "antd/es/input/Search";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 
 import { getFileIcon, handleFileOpen } from "../utils/fileManagerUtils";
-import type TreeNode from "../types/TreeNode";
-import FolderPanelManager from "./FolderPanelManager";
 import { useFolderTreeContext } from "../context/FolderTreeContext";
 import type { FileItemDTO } from "../types/FileManagerTypes";
-
-const { Text } = Typography;
 /**
  * Main File Manager component – combines folder tree navigation (left sidebar)
  * with paginated content view (right/main area) of the currently selected folder.
@@ -44,37 +32,46 @@ const { Text } = Typography;
  * - Integrates with FolderTreeContext for shared navigation state
  */
 const FileManager = () => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { Search } = Input;
+  const {
+    selectedFolderId,
+    setSelectedFolderId,
+    folderSearchText,
+    setFolderSearchText,
+  } = useFolderTreeContext();
+
   const [currentPage, setCurrentPage] = useState(1);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [searchTerm, setSearchterm] = useState("");
   const [pageSize, setPageSize] = useState(5);
+  const [innerSearchTerm, setInnerSearchTerm] = useState("");
   const [isSidebarVisible, setIsSideBarVisible] = useState(true);
-  const [isStacked, setIsStacked] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [treeData, setTreeData] = useState<TreeNode[]>([
-    {
-      title: "Root",
-      key: "root",
-      IdFolder: null,
-      isLeaf: false,
-      path: "root",
-    },
-  ]);
+  const [isStacked, setIsStacked] = useState(true);
+  const {
+    data: rootFolder,
+    // isLoading: rootFolderLoading, // TODO take in consideration on loading spinner
+    // error: rootFolderError,
+  } = useQuery({
+    queryKey: ["rootFolder"],
+    queryFn: fetchRootFolder,
+  });
+
+  useEffect(() => {
+    if (!rootFolder) return;
+    setSelectedFolderId(rootFolder?.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rootFolder]);
+
+  const { data: breadcrumbs } = useQuery({
+    queryKey: ["folder-path", selectedFolderId],
+    queryFn: () => fetchFolderPath(selectedFolderId),
+    enabled: !!selectedFolderId,
+    initialData: [],
+  });
+
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<string | null>(null);
   const openPreview = (url: string, type: string) => {
     setPreviewUrl(url);
     setPreviewType(type);
   };
-  const {
-    breadcrumbs,
-    selectedFolderId,
-    setSelectedFolderId,
-    setBreadcrumbs,
-    addDiscoveredFolders,
-  } = useFolderTreeContext();
 
   console.log(breadcrumbs, "Breadcrumbs list");
 
@@ -121,57 +118,61 @@ const FileManager = () => {
       render: (date?: string) =>
         date ? new Date(date).toLocaleString() : "--",
     },
+    {
+      title: "Author",
+      dataIndex: "ownerName",
+      key: "ownerName",
+      render: (s: string) =>
+        s || "Owner unknown",
+    },
   ];
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const onBreadCrumbClick = (folderId: string) => {
-    setSelectedFolderId(folderId);
-  };
-  // DATA FROM FILENET
 
   const {
     data: paginatedData,
     isLoading,
     isFetching,
   } = useQuery({
-    queryKey: ["folderContent", selectedFolderId, currentPage, pageSize],
+    queryKey: [
+      "folderContent",
+      selectedFolderId,
+      currentPage,
+      pageSize,
+      innerSearchTerm,
+    ],
     queryFn: () =>
-      fetchPaginatedFolderContent(selectedFolderId, currentPage - 1, pageSize),
-    staleTime: 1000 * 60 * 5,
-    cacheTime: 1000 * 60 * 30,
+      fetchPaginatedFolderContent(
+        selectedFolderId,
+        currentPage - 1,
+        pageSize,
+        innerSearchTerm,
+      ),
+    // staleTime: 1000 * 60 * 5,
+    // cacheTime: 1000 * 60 * 30,
     enabled: !!selectedFolderId,
     placeholderData: (previousData: FileItemDTO[]) => previousData,
   });
-  const tableData = paginatedData?.items ?? [];
-
-  const formattedBreadcrumbs = useMemo(() => {
-    return breadcrumbs.map((b) => `${b.title}/`);
-  }, [breadcrumbs]);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCurrentPage(1);
+    const timeout = setTimeout(() => {
+      setInnerSearchTerm(folderSearchText);
+      setCurrentPage(1);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [folderSearchText]);
+  useEffect(() => {
+    setInnerSearchTerm("");
+    setFolderSearchText("");
   }, [selectedFolderId]);
+  const tableData = paginatedData?.items ?? [];
+  console.log("Search term = ", innerSearchTerm);
   return (
     <div className="max-w-6xl mx-auto  p-6 bg-neutral-50 border border-slate-200 rounded-md shadow-md">
       <h2 className="text-2xl font-semibold mb-4">File Manager</h2>
       <div
         className={`flex transition-all duration-500 ease-in-out border border-slate-200 rounded-md overflow-hidden  ${isStacked ? "flex-col" : "flex-col md:flex-row"}`}
       >
-        {/* Left Div */}
-
-        {isSidebarVisible && (
-          <div
-            className={`w-full ${isStacked ? "w-full" : "w-full md:w-1/3"} border-r border-slate-200 bg-white  p-4 min-h-125`}
-          >
-            <div className="flex items-center gap-2 mb-4 p-2 bg-blue-50 text-blue-600 rounded overflow-hidden">
-              <FolderOutlined /> <Text ellipsis>{formattedBreadcrumbs}</Text>
-            </div>
-
-            <FolderPanelManager />
-          </div>
-        )}
         {/* Right Div */}
         <div
-          className={`w-full ${!isSidebarVisible ? "w-full" : isStacked ? "w-full" : "w-full md:w-2/3"} flex flex-col`}
+          className={`w-full ${!isSidebarVisible ? "w-full" : isStacked ? "w-full" : "w-full md:w-2/3"} flex flex-col min-h-130`}
         >
           <div className="p-3 border-b border-slate-200 bg-white flex justify-between items-center">
             <Breadcrumb
@@ -180,10 +181,10 @@ const FileManager = () => {
                   <span
                     className="cursor-pointer hover: text-blue-500 transition-colors"
                     onClick={() => {
-                      setSelectedFolderId(part.id);
+                      setSelectedFolderId(part.Id);
                     }}
                   >
-                    {part.title}
+                    {part.folderName}
                   </span>
                 ),
               }))}
@@ -192,7 +193,7 @@ const FileManager = () => {
 
           <div className="p-3 flex justify-end border-b border-slate-200 border-t-slate-200">
             <Space className="border border-slate-200 rounded-md px-2 py-1 bg-white">
-              <Button
+              {/* <Button
                 type="text"
                 icon={
                   isSidebarVisible ? (
@@ -204,17 +205,23 @@ const FileManager = () => {
                 onClick={() => setIsSideBarVisible(!isSidebarVisible)}
               >
                 {isSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
-              </Button>
+              </Button> */}
+              {/* <div className="w-px h-4 bg-slate-200" /> */}
+              <Search
+                placeholder="Search"
+                variant="borderless"
+                onChange={(e) => setFolderSearchText(e.target.value)}
+                value={folderSearchText}
+              />
               <div className="w-px h-4 bg-slate-200" />
-
               <Button type="text" icon={<PlusOutlined />}>
                 Add Folder
               </Button>
               <div className="w-px h-4 bg-slate-200" />
               <Button type="text" icon={<EditOutlined />} />
               <Button type="text" icon={<DeleteOutlined />} />
-              <div className="w-px h-4 bg-slate-200" />
-              <Button
+              {/* <div className="w-px h-4 bg-slate-200" /> */}
+              {/* <Button
                 type={`${!isStacked ? "primary" : "text"}`}
                 onClick={() => setIsStacked(false)}
                 icon={<ColumnWidthOutlined />}
@@ -223,7 +230,7 @@ const FileManager = () => {
                 type={`${isStacked ? "primary" : "text"}`}
                 onClick={() => setIsStacked(true)}
                 icon={<ColumnHeightOutlined />}
-              ></Button>
+              ></Button> */}
             </Space>
           </div>
 
@@ -258,12 +265,7 @@ const FileManager = () => {
                     if (record.type === "file") {
                       return;
                     }
-                    addDiscoveredFolders(selectedFolderId!, [record]);
                     setSelectedFolderId(record.id);
-                    setBreadcrumbs([
-                      ...breadcrumbs,
-                      { id: record.id, title: record.name },
-                    ]);
                   },
                 };
               }}

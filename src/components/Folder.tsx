@@ -238,6 +238,7 @@ const Folder = ({
         className={`flex items-center gap-2 py-1  cursor-pointer ${isSelected ? "font-semibold text-blue-600 bg-blue-100 hover:bg-blue-100 rounded-md " : "text-slate-700 hover:bg-neutral-50"} hover:cursor-pointer`}
         style={{ paddingLeft: `${level * 14}px` }}
         onClick={() => {
+          setExpanded(true);
           setSelectedFolderId(folderId);
         }}
       >
@@ -247,7 +248,8 @@ const Folder = ({
           style={{
             color: "inherit",
           }}
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             if (!isChildSelected) {
               setExpanded((prev) => !prev);
             }
@@ -258,10 +260,10 @@ const Folder = ({
         <button
           type="button"
           className={`text-left text-sm hover:cursor-pointer`}
-          onClick={() => {
-            setExpanded(true);
-            setSelectedFolderId(folderId);
-          }}
+          // onClick={() => {
+          //   setExpanded(true);
+          //   setSelectedFolderId(folderId);
+          // }}
         >
           {folderName}
         </button>

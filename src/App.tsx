@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import FileManager from "./components/FileManager";
+import FileManager2 from "./components/FileManager2";
 import { FolderTreeProvider } from "./context/FolderTreeContext";
 // TODO query client config to not refetch on window focus, etc. to avoid unnecessary refetches while testing and developing
 const queryClient = new QueryClient({
@@ -15,7 +15,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <FolderTreeProvider>
-        <FileManager />
+        <FileManager2 />
       </FolderTreeProvider>
     </QueryClientProvider>
   );

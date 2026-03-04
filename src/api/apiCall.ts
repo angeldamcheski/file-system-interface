@@ -47,12 +47,14 @@ export const fetchPaginatedFolderContent = async (
   folderId: string | null,
   pageNum: number = 0,
   pageSize: number | null = 10,
+  searchTerm: string = "",
 ) => {
   const response = await apiClient.get("/list-paginated", {
     params: {
       parentId: folderId,
       pageSize: pageSize,
       pageNum: pageNum,
+      searchTerm: searchTerm,
     },
   });
   console.log("LIST PAGINATED", response);
@@ -125,3 +127,22 @@ export const fetchFileContent = async (
 //   });
 //   return response.data;
 // };
+
+export const fetchFolderPath = async (
+  folderId: string | null,
+): Promise<
+  {
+    Id: string; // TODo change to id
+    folderName: string;
+  }[]
+> => {
+  const response = await apiClient.get<
+    {
+      Id: string; // TODo change to id
+      folderName: string;
+    }[]
+  >("/get-path", {
+    params: { folderId },
+  });
+  return response.data;
+};
