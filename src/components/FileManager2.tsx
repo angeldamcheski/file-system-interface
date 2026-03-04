@@ -122,8 +122,7 @@ const FileManager = () => {
       title: "Author",
       dataIndex: "ownerName",
       key: "ownerName",
-      render: (s: string) =>
-        s || "Owner unknown",
+      render: (s: string) => s || "Owner unknown",
     },
   ];
 
@@ -181,6 +180,7 @@ const FileManager = () => {
                   <span
                     className="cursor-pointer hover: text-blue-500 transition-colors"
                     onClick={() => {
+                      setCurrentPage(1);
                       setSelectedFolderId(part.Id);
                     }}
                   >
@@ -266,6 +266,7 @@ const FileManager = () => {
                       return;
                     }
                     setSelectedFolderId(record.id);
+                    setCurrentPage(1);
                   },
                 };
               }}
