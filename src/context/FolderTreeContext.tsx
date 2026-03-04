@@ -42,7 +42,15 @@ interface FolderTreeContextValue {
 const FolderTreeContext = createContext<FolderTreeContextValue | undefined>(
   undefined,
 );
-
+/**
+ * Provider component that holds and shares folder navigation state.
+ *
+ * Main responsibilities:
+ * - Selected folder tracking
+ * - Breadcrumb path management
+ * - Folder search/filter state
+ * - Lazy-loaded child folders caching (avoid duplicate fetches)
+ */
 export const FolderTreeProvider = ({
   children,
   initialSelectedFolderId = null,
@@ -88,6 +96,21 @@ export const FolderTreeProvider = ({
   );
 };
 
+/**
+ * Custom hook to access folder tree context values and actions.
+ *
+ * @throws {Error} When used outside of FolderTreeProvider
+ *
+ * @example
+ * ```tsx
+ * const {
+ *   selectedFolderId,
+ *   setSelectedFolderId,
+ *   breadcrumbs,
+ *   addDiscoveredFolders
+ * } = useFolderTreeContext();
+ * ```
+ */
 // eslint-disable-next-line react-refresh/only-export-components
 export const useFolderTreeContext = () => {
   const context = useContext(FolderTreeContext);

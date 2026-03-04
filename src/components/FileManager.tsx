@@ -29,7 +29,20 @@ import { useFolderTreeContext } from "../context/FolderTreeContext";
 import type { FileItemDTO } from "../types/FileManagerTypes";
 
 const { Text } = Typography;
-
+/**
+ * Main File Manager component – combines folder tree navigation (left sidebar)
+ * with paginated content view (right/main area) of the currently selected folder.
+ *
+ * Features:
+ * - Responsive sidebar (folder tree) that can be toggled or stacked vertically
+ * - Breadcrumb navigation synced with tree selection
+ * - Paginated table of files + folders in current directory
+ * - Click folder → navigate + update selection/breadcrumbs
+ * - Click file → open preview modal (images, PDF, text)
+ * - Toolbar with layout toggle, sidebar visibility, CRUD placeholders
+ * - Uses React Query for content fetching with caching
+ * - Integrates with FolderTreeContext for shared navigation state
+ */
 const FileManager = () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { Search } = Input;

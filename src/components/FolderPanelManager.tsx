@@ -4,7 +4,17 @@ import Folder from "./Folder";
 import Search from "antd/es/input/Search";
 import { useFolderTreeContext } from "../context/FolderTreeContext";
 import { useEffect } from "react";
-
+/**
+ * Top-level panel that manages the folder tree view.
+ *
+ * Responsibilities:
+ * - Fetches the root folder via API
+ * - Sets the initially selected folder (root) when data arrives
+ * - Provides a search input to filter folders in the tree
+ * - Renders the root {@link Folder} component (which recursively renders children)
+ *
+ * This component serves as the entry point for the folder navigation UI.
+ */
 const FolderPanelManager = () => {
   const {
     data: rootFolder,

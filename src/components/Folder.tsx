@@ -14,6 +14,14 @@ interface FolderPage {
   continuanceToken?: string | null;
 }
 
+/**
+ * Props for the recursive Folder component.
+ *
+ * This component renders a single folder node in the tree and recursively renders
+ * its children when expanded. It handles lazy loading, pagination, search filtering,
+ * breadcrumb synchronization, selection highlighting, and ghost-folder insertion
+ * for path consistency.
+ */
 interface FolderProps {
   folderId: string;
   folderName: string;
@@ -47,7 +55,26 @@ const loadFolderPage = async (
     continuanceToken: response.continuanceToken ?? null,
   };
 };
-
+/**
+ * Recursive folder tree node component.
+ *
+ * Features:
+ * • Click to select folder → updates global selectedFolderId
+ * • Chevron to expand/collapse children
+ * • Infinite scrolling / pagination ("Load more")
+ * • Search term synchronization (debounced from global search)
+ * • Breadcrumb trail maintenance
+ * • "Ghost folder" insertion – shows next folder in breadcrumb path even if not yet loaded
+ * • Caches discovered children in context to avoid re-fetching
+ * • Visual highlighting when selected
+ * • Indentation based on nesting level
+ *
+ * @remarks
+ * This component is performance-sensitive:
+ * - useInfiniteQuery is only enabled when expanded
+ * - knownFolders cache prevents redundant API calls
+ * - Memoization is used aggressively on computed lists
+ */
 const Folder = ({
   folderId,
   folderName,
