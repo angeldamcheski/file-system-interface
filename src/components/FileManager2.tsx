@@ -1,36 +1,20 @@
-import {
-  FolderOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-  UploadOutlined,
-  HistoryOutlined,
-} from "@ant-design/icons";
+import { FolderOutlined, HistoryOutlined } from "@ant-design/icons";
 import {
   fetchFileVersions,
   fetchFolderPath,
-  fetchPaginatedFolderContent,
   fetchRootFolder,
-  updateFileVersion,
-  uploadFile,
 } from "../api/apiCall";
-import {
-  Breadcrumb,
-  Table,
-  Button,
-  Space,
-  Spin,
-  Modal,
-  message,
-  Upload,
-} from "antd";
-import Search from "antd/es/input/Search";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Breadcrumb, Table, Button, Space, Spin, message, Upload } from "antd";
+import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-
+import { useFolderContent } from "../hooks/useFolderContent";
 import { getFileIcon, handleFileOpen } from "../utils/fileManagerUtils";
 import { useFolderTreeContext } from "../context/FolderTreeContext";
 import type { FileItemDTO } from "../types/FileManagerTypes";
+import { useUploadFile } from "../hooks/useUploadFile";
+import { VersionHistoryModal } from "./VersionHistoryModal";
+import FilePreviewModal from "./FilePreviewModal";
+import ActionSpacebar from "./ActionSpacebar";
 /**
  * Main File Manager component – combines folder tree navigation (left sidebar)
  * with paginated content view (right/main area) of the currently selected folder.
@@ -52,7 +36,6 @@ const FileManager = () => {
     folderSearchText,
     setFolderSearchText,
   } = useFolderTreeContext();
-  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [innerSearchTerm, setInnerSearchTerm] = useState("");
@@ -100,7 +83,18 @@ const FileManager = () => {
     enabled: !!selectedFileForVersions?.id,
   });
   console.log(breadcrumbs, "Breadcrumbs list");
+  console.log("Selected file for versions", selectedFileForVersions);
   console.log("VERSIONS DATA", versions);
+  const {
+    data: paginatedData,
+    isLoading,
+    isFetching,
+  } = useFolderContent(
+    selectedFolderId,
+    currentPage,
+    pageSize,
+    innerSearchTerm,
+  );
   const columns = [
     {
       title: "Name",
@@ -174,97 +168,6 @@ const FileManager = () => {
     },
   ];
 
-  const {
-    data: paginatedData,
-    isLoading,
-    isFetching,
-  } = useQuery({
-    queryKey: [
-      "folderContent",
-      selectedFolderId,
-      currentPage,
-      pageSize,
-      innerSearchTerm,
-    ],
-    queryFn: () =>
-      fetchPaginatedFolderContent(
-        selectedFolderId,
-        currentPage - 1,
-        pageSize,
-        innerSearchTerm,
-      ),
-    // staleTime: 1000 * 60 * 5,
-    // cacheTime: 1000 * 60 * 30,
-    enabled: !!selectedFolderId,
-    placeholderData: (previousData: FileItemDTO[]) => previousData,
-  });
-  const versionMutation = useMutation({
-    mutationFn: ({ docId, file }: { docId: string; file: File }) =>
-      updateFileVersion(docId, file),
-    onSuccess: () => {
-      message.success("New version uploaded successfully");
-      queryClient.invalidateQueries({
-        queryKey: ["folderContent", selectedFolderId],
-      });
-    },
-    onError: (error: any) => {
-      const serverErrorMessage = error.response?.data?.message || error.message;
-      message.error("Failed to update version: " + serverErrorMessage);
-    },
-  });
-  const uploadMutation = useMutation({
-    mutationFn: ({ folderId, file }: { folderId: string; file: File }) =>
-      uploadFile(folderId, file),
-    onSuccess: () => {
-      message.success("File uploaded successfully", 4);
-      queryClient.invalidateQueries({
-        queryKey: ["folderContent", selectedFolderId],
-      });
-    },
-    onError: (error: any, variables) => {
-      const serverErrorMessage =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        error.message;
-      if (error.response?.status === 409) {
-        // Modal.error({
-        //   title: "Duplicate file",
-        //   content: serverErrorMessage,
-        // });
-        const existingFile = tableData.find(
-          (item) =>
-            item.name.toLowerCase() === variables.file.name.toLocaleLowerCase(),
-        );
-        Modal.confirm({
-          title: "File already exists",
-          content: (
-            <span>
-              A file named <b>{variables.file.name}</b> already exists. Would
-              you like to upload this as a <b>new version</b>?
-            </span>
-          ),
-          okText: "Update Version",
-          cancelText: "Cancel",
-
-          onOk: () => {
-            if (existingFile) {
-              // Call a new mutation for versioning
-              versionMutation.mutate({
-                docId: existingFile.id,
-                file: variables.file,
-              });
-            }
-          },
-        });
-      } else {
-        message.error(
-          "Upload failed: " + (serverErrorMessage || error.message),
-          4,
-        );
-      }
-    },
-  });
-
   const handleUpload = (file: File) => {
     if (!selectedFolderId) {
       message.error("Please select a folder first");
@@ -289,13 +192,6 @@ const FileManager = () => {
         item.name.toLowerCase() === file.name.toLowerCase() &&
         item.type === "file",
     );
-    // if (isDuplicate) {
-    //   Modal.error({
-    //     title: "Duplicate file name",
-    //     content: `A file named ${file.name} already exists in this folder. Please rename the file and try again`,
-    //   });
-    //   return Upload.LIST_IGNORE;
-    // }
 
     uploadMutation.mutate({
       folderId: selectedFolderId,
@@ -315,6 +211,7 @@ const FileManager = () => {
     setFolderSearchText("");
   }, [selectedFolderId]);
   const tableData = paginatedData?.items ?? [];
+  const uploadMutation = useUploadFile(selectedFolderId!, tableData);
   console.log("Search term = ", innerSearchTerm);
   return (
     <div className="max-w-6xl mx-auto  p-6 bg-neutral-50 border border-slate-200 rounded-md shadow-md">
@@ -345,121 +242,25 @@ const FileManager = () => {
           </div>
 
           <div className="p-3 flex justify-end border-b border-slate-200 border-t-slate-200">
-            <Space className="border border-slate-200 rounded-md px-2 py-1 bg-white">
-              {/* <Button
-                type="text"
-                icon={
-                  isSidebarVisible ? (
-                    <MenuFoldOutlined />
-                  ) : (
-                    <MenuUnfoldOutlined />
-                  )
-                }
-                onClick={() => setIsSideBarVisible(!isSidebarVisible)}
-              >
-                {isSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
-              </Button> */}
-              {/* <div className="w-px h-4 bg-slate-200" /> */}
-              <Search
-                placeholder="Search"
-                variant="borderless"
-                allowClear
-                onChange={(e) => setFolderSearchText(e.target.value)}
-                value={folderSearchText}
-                className="hover:inset-shadow-sm/15 rounded-md transition-all duration-300 focus-within:bg-white focus-within:inset-shadow-sm/5  "
-              />
-              <div className="w-px h-4 bg-slate-200" />
-              <Button type="text" icon={<PlusOutlined />}>
-                Add Folder
-              </Button>
-              <div className="w-px h-4 bg-slate-200" />
-              <Upload
-                beforeUpload={handleUpload}
-                showUploadList={false}
-                accept="*/*"
-              >
-                <Button
-                  type="text"
-                  icon={<UploadOutlined />}
-                  loading={uploadMutation.isPending}
-                >
-                  Upload a File
-                </Button>
-              </Upload>
-              <div className="w-px h-4 bg-slate-200" />
-              <Button type="text" icon={<EditOutlined />} />
-              <Button type="text" icon={<DeleteOutlined />} />
-              {/* <div className="w-px h-4 bg-slate-200" /> */}
-              {/* <Button
-                type={`${!isStacked ? "primary" : "text"}`}
-                onClick={() => setIsStacked(false)}
-                icon={<ColumnWidthOutlined />}
-              ></Button>
-              <Button
-                type={`${isStacked ? "primary" : "text"}`}
-                onClick={() => setIsStacked(true)}
-                icon={<ColumnHeightOutlined />}
-              ></Button> */}
-            </Space>
+            <ActionSpacebar
+              setFolderSearchText={setFolderSearchText}
+              folderSearchText={folderSearchText}
+              handleUpload={handleUpload}
+              isPending={uploadMutation.isPending}
+            ></ActionSpacebar>
           </div>
           {/* VERSION HISTORY MODAL */}
-          <Modal
-            title={`Version History: ${selectedFileForVersions?.name}`}
+          <VersionHistoryModal
             open={isVersionModalOpen}
-            onCancel={() => {
+            onClose={() => {
               setIsVersionModalOpen(false);
               setSelectedFileForVersions(null);
             }}
-            footer={[
-              <Button key="close" onClick={() => setIsVersionModalOpen(false)}>
-                Close
-              </Button>,
-            ]}
-            width={700}
-          >
-            <Table
-              dataSource={versions}
-              loading={versionsLoading}
-              rowKey="id"
-              pagination={false}
-              columns={[
-                {
-                  title: "Version / Author",
-                  dataIndex: "ownerName",
-                  key: "ownerName",
-                  render: (text) => (
-                    <span className="font-medium text-blue-600 italic">
-                      {text}
-                    </span>
-                  ),
-                },
-                {
-                  title: "Size",
-                  dataIndex: "size",
-                  key: "size",
-                },
-                {
-                  title: "Date Modified",
-                  dataIndex: "modifiedDate",
-                  key: "modifiedDate",
-                  render: (date: string) => new Date(date).toLocaleString(),
-                },
-                {
-                  title: "Action",
-                  key: "download",
-                  width: 80,
-                  render: (_, record) => (
-                    <Button
-                      type="link"
-                      onClick={() => handleFileOpen(record, openPreview)}
-                    >
-                      Preview
-                    </Button>
-                  ),
-                },
-              ]}
-            />
-          </Modal>
+            versions={versions || []}
+            loading={versionsLoading}
+            openPreview={openPreview}
+          />
+
           <Spin spinning={isLoading}>
             <Table
               dataSource={tableData}
@@ -506,7 +307,7 @@ const FileManager = () => {
               }
               className="hover:cursor-pointer text-wrap "
             />
-            <Modal
+            {/* <Modal
               open={!!previewUrl}
               footer={null}
               centered={true}
@@ -559,7 +360,18 @@ const FileManager = () => {
                   height="600px"
                 />
               )}
-            </Modal>
+            </Modal> */}
+            <FilePreviewModal
+              previewUrl={previewUrl}
+              previewType={previewType}
+              onClose={() => {
+                if (previewUrl) {
+                  window.URL.revokeObjectURL(previewUrl);
+                }
+                setPreviewUrl(null);
+                setPreviewType(null);
+              }}
+            />
           </Spin>
         </div>
       </div>
