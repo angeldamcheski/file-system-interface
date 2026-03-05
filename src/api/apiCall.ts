@@ -166,3 +166,23 @@ export const uploadFile = async (
   console.log("Upload response file obj", response);
   return response.data;
 };
+export const updateFileVersion = async (docId: string, file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await apiClient.put(`/${docId}/version`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+/**
+ * Fetches the version history for a specific document.
+ * @param docId - The ID of the document
+ * @returns List of FileItemDTO representing different versions
+ */
+export const fetchFileVersions = async (
+  docId: string,
+): Promise<FileItemDTO[]> => {
+  const response = await apiClient.get<FileItemDTO[]>(`/${docId}/versions`);
+  return response.data;
+};

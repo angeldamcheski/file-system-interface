@@ -4,11 +4,14 @@ import {
   DeleteOutlined,
   PlusOutlined,
   UploadOutlined,
+  HistoryOutlined,
 } from "@ant-design/icons";
 import {
+  fetchFileVersions,
   fetchFolderPath,
   fetchPaginatedFolderContent,
   fetchRootFolder,
+  updateFileVersion,
   uploadFile,
 } from "../api/apiCall";
 import {
@@ -54,6 +57,9 @@ const FileManager = () => {
   const [pageSize, setPageSize] = useState(5);
   const [innerSearchTerm, setInnerSearchTerm] = useState("");
   const [isSidebarVisible, setIsSideBarVisible] = useState(true);
+  const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
+  const [selectedFileForVersions, setSelectedFileForVersions] =
+    useState<FileItemDTO | null>(null);
   const [isStacked, setIsStacked] = useState(true);
   const {
     data: rootFolder,
@@ -83,9 +89,18 @@ const FileManager = () => {
     setPreviewUrl(url);
     setPreviewType(type);
   };
+  const handleViewVersions = (record: FileItemDTO) => {
+    setSelectedFileForVersions(record);
+    setIsVersionModalOpen(true);
+  };
 
+  const { data: versions, isLoading: versionsLoading } = useQuery({
+    queryKey: ["fileVersions", selectedFileForVersions?.id],
+    queryFn: () => fetchFileVersions(selectedFileForVersions!.id),
+    enabled: !!selectedFileForVersions?.id,
+  });
   console.log(breadcrumbs, "Breadcrumbs list");
-
+  console.log("VERSIONS DATA", versions);
   const columns = [
     {
       title: "Name",
@@ -135,6 +150,28 @@ const FileManager = () => {
       key: "ownerName",
       render: (s: string) => s || "Owner unknown",
     },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 100,
+      render: (_: any, record: FileItemDTO) => {
+        const isFile = record.type === "file";
+        return (
+          <Space size="middle">
+            {isFile ? (
+              <Button
+                type="text"
+                icon={<HistoryOutlined />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewVersions(record);
+                }}
+              />
+            ) : null}
+          </Space>
+        );
+      },
+    },
   ];
 
   const {
@@ -161,6 +198,20 @@ const FileManager = () => {
     enabled: !!selectedFolderId,
     placeholderData: (previousData: FileItemDTO[]) => previousData,
   });
+  const versionMutation = useMutation({
+    mutationFn: ({ docId, file }: { docId: string; file: File }) =>
+      updateFileVersion(docId, file),
+    onSuccess: () => {
+      message.success("New version uploaded successfully");
+      queryClient.invalidateQueries({
+        queryKey: ["folderContent", selectedFolderId],
+      });
+    },
+    onError: (error: any) => {
+      const serverErrorMessage = error.response?.data?.message || error.message;
+      message.error("Failed to update version: " + serverErrorMessage);
+    },
+  });
   const uploadMutation = useMutation({
     mutationFn: ({ folderId, file }: { folderId: string; file: File }) =>
       uploadFile(folderId, file),
@@ -170,8 +221,7 @@ const FileManager = () => {
         queryKey: ["folderContent", selectedFolderId],
       });
     },
-    onError: (error: any) => {
-      console.log("Error object from backend", error.response);
+    onError: (error: any, variables) => {
       const serverErrorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
@@ -181,7 +231,31 @@ const FileManager = () => {
         //   title: "Duplicate file",
         //   content: serverErrorMessage,
         // });
-        message.error(serverErrorMessage, 4);
+        const existingFile = tableData.find(
+          (item) =>
+            item.name.toLowerCase() === variables.file.name.toLocaleLowerCase(),
+        );
+        Modal.confirm({
+          title: "File already exists",
+          content: (
+            <span>
+              A file named <b>{variables.file.name}</b> already exists. Would
+              you like to upload this as a <b>new version</b>?
+            </span>
+          ),
+          okText: "Update Version",
+          cancelText: "Cancel",
+
+          onOk: () => {
+            if (existingFile) {
+              // Call a new mutation for versioning
+              versionMutation.mutate({
+                docId: existingFile.id,
+                file: variables.file,
+              });
+            }
+          },
+        });
       } else {
         message.error(
           "Upload failed: " + (serverErrorMessage || error.message),
@@ -190,6 +264,7 @@ const FileManager = () => {
       }
     },
   });
+
   const handleUpload = (file: File) => {
     if (!selectedFolderId) {
       message.error("Please select a folder first");
@@ -214,13 +289,13 @@ const FileManager = () => {
         item.name.toLowerCase() === file.name.toLowerCase() &&
         item.type === "file",
     );
-    if (isDuplicate) {
-      Modal.error({
-        title: "Duplicate file name",
-        content: `A file named ${file.name} already exists in this folder. Please rename the file and try again`,
-      });
-      return Upload.LIST_IGNORE;
-    }
+    // if (isDuplicate) {
+    //   Modal.error({
+    //     title: "Duplicate file name",
+    //     content: `A file named ${file.name} already exists in this folder. Please rename the file and try again`,
+    //   });
+    //   return Upload.LIST_IGNORE;
+    // }
 
     uploadMutation.mutate({
       folderId: selectedFolderId,
@@ -327,7 +402,64 @@ const FileManager = () => {
               ></Button> */}
             </Space>
           </div>
-
+          {/* VERSION HISTORY MODAL */}
+          <Modal
+            title={`Version History: ${selectedFileForVersions?.name}`}
+            open={isVersionModalOpen}
+            onCancel={() => {
+              setIsVersionModalOpen(false);
+              setSelectedFileForVersions(null);
+            }}
+            footer={[
+              <Button key="close" onClick={() => setIsVersionModalOpen(false)}>
+                Close
+              </Button>,
+            ]}
+            width={700}
+          >
+            <Table
+              dataSource={versions}
+              loading={versionsLoading}
+              rowKey="id"
+              pagination={false}
+              columns={[
+                {
+                  title: "Version / Author",
+                  dataIndex: "ownerName",
+                  key: "ownerName",
+                  render: (text) => (
+                    <span className="font-medium text-blue-600 italic">
+                      {text}
+                    </span>
+                  ),
+                },
+                {
+                  title: "Size",
+                  dataIndex: "size",
+                  key: "size",
+                },
+                {
+                  title: "Date Modified",
+                  dataIndex: "modifiedDate",
+                  key: "modifiedDate",
+                  render: (date: string) => new Date(date).toLocaleString(),
+                },
+                {
+                  title: "Action",
+                  key: "download",
+                  width: 80,
+                  render: (_, record) => (
+                    <Button
+                      type="link"
+                      onClick={() => handleFileOpen(record, openPreview)}
+                    >
+                      Preview
+                    </Button>
+                  ),
+                },
+              ]}
+            />
+          </Modal>
           <Spin spinning={isLoading}>
             <Table
               dataSource={tableData}
