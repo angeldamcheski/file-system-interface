@@ -3,15 +3,26 @@ import {
   EditOutlined,
   DeleteOutlined,
   PlusOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import {
   fetchFolderPath,
   fetchPaginatedFolderContent,
   fetchRootFolder,
+  uploadFile,
 } from "../api/apiCall";
-import { Breadcrumb, Table, Button, Space, Spin, Modal } from "antd";
+import {
+  Breadcrumb,
+  Table,
+  Button,
+  Space,
+  Spin,
+  Modal,
+  message,
+  Upload,
+} from "antd";
 import Search from "antd/es/input/Search";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 
 import { getFileIcon, handleFileOpen } from "../utils/fileManagerUtils";
@@ -38,7 +49,7 @@ const FileManager = () => {
     folderSearchText,
     setFolderSearchText,
   } = useFolderTreeContext();
-
+  const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [innerSearchTerm, setInnerSearchTerm] = useState("");
@@ -150,6 +161,73 @@ const FileManager = () => {
     enabled: !!selectedFolderId,
     placeholderData: (previousData: FileItemDTO[]) => previousData,
   });
+  const uploadMutation = useMutation({
+    mutationFn: ({ folderId, file }: { folderId: string; file: File }) =>
+      uploadFile(folderId, file),
+    onSuccess: () => {
+      message.success("File uploaded successfully", 4);
+      queryClient.invalidateQueries({
+        queryKey: ["folderContent", selectedFolderId],
+      });
+    },
+    onError: (error: any) => {
+      console.log("Error object from backend", error.response);
+      const serverErrorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message;
+      if (error.response?.status === 409) {
+        // Modal.error({
+        //   title: "Duplicate file",
+        //   content: serverErrorMessage,
+        // });
+        message.error(serverErrorMessage, 4);
+      } else {
+        message.error(
+          "Upload failed: " + (serverErrorMessage || error.message),
+          4,
+        );
+      }
+    },
+  });
+  const handleUpload = (file: File) => {
+    if (!selectedFolderId) {
+      message.error("Please select a folder first");
+      return Upload.LIST_IGNORE;
+    }
+    const isAllowedType =
+      file.type === "application/pdf" ||
+      file.type.startsWith("image/") ||
+      file.type === "text/plain";
+    const lessThanSizeLimit = file.size / 1024 / 1024 < 10;
+
+    if (!isAllowedType) {
+      message.error("File type not supported. Only PDF, Images or Text Files!");
+      return Upload.LIST_IGNORE;
+    }
+    if (!lessThanSizeLimit) {
+      message.error("File size exceeding 10MB!");
+      return Upload.LIST_IGNORE;
+    }
+    const isDuplicate = tableData.some(
+      (item: FileItemDTO) =>
+        item.name.toLowerCase() === file.name.toLowerCase() &&
+        item.type === "file",
+    );
+    if (isDuplicate) {
+      Modal.error({
+        title: "Duplicate file name",
+        content: `A file named ${file.name} already exists in this folder. Please rename the file and try again`,
+      });
+      return Upload.LIST_IGNORE;
+    }
+
+    uploadMutation.mutate({
+      folderId: selectedFolderId,
+      file,
+    });
+    return false;
+  };
   useEffect(() => {
     const timeout = setTimeout(() => {
       setInnerSearchTerm(folderSearchText);
@@ -210,13 +288,29 @@ const FileManager = () => {
               <Search
                 placeholder="Search"
                 variant="borderless"
+                allowClear
                 onChange={(e) => setFolderSearchText(e.target.value)}
                 value={folderSearchText}
+                className="hover:inset-shadow-sm/15 rounded-md transition-all duration-300 focus-within:bg-white focus-within:inset-shadow-sm/5  "
               />
               <div className="w-px h-4 bg-slate-200" />
               <Button type="text" icon={<PlusOutlined />}>
                 Add Folder
               </Button>
+              <div className="w-px h-4 bg-slate-200" />
+              <Upload
+                beforeUpload={handleUpload}
+                showUploadList={false}
+                accept="*/*"
+              >
+                <Button
+                  type="text"
+                  icon={<UploadOutlined />}
+                  loading={uploadMutation.isPending}
+                >
+                  Upload a File
+                </Button>
+              </Upload>
               <div className="w-px h-4 bg-slate-200" />
               <Button type="text" icon={<EditOutlined />} />
               <Button type="text" icon={<DeleteOutlined />} />

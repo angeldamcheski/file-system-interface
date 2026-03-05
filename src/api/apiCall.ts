@@ -146,3 +146,23 @@ export const fetchFolderPath = async (
   });
   return response.data;
 };
+
+export const uploadFile = async (
+  folderId: string,
+  file: File,
+): Promise<FileItemDTO> => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await apiClient.post<FileItemDTO>(
+    `/${folderId}/upload`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+  console.log("Upload response file obj", response);
+  return response.data;
+};
