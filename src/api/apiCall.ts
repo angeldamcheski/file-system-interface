@@ -111,22 +111,19 @@ export const fetchFileContent = async (
   return response;
 };
 
-//@Legacy Not used anymore
-// export const fetchPaginatedFolderContent = async (
-//   folderId: string | null,
-//   pageNum: number = 0,
-//   pageSize: number | null = 10,
-// ) => {
-//   const response = await apiClient.get("/paginated-contents", {
-//     params: {
-//       parentId: folderId,
-//       pageSize: pageSize,
-//       pageNum: pageNum,
-//     },
-//   });
-//   return response.data;
-// };
 
+
+/**
+ * Fetches the full path of a folder from the backend given its ID.
+ *
+ * <p>Returns an array of objects representing each folder in the path from the root to
+ * the specified folder, including folder ID and name.
+ *
+ * @param folderId - The unique ID of the folder whose path should be fetched. Can be null.
+ * @returns A Promise that resolves to an array of objects, each containing:
+ *          - Id: string (the folder's unique ID)
+ *          - folderName: string (the name of the folder)
+ */
 export const fetchFolderPath = async (
   folderId: string | null,
 ): Promise<
@@ -146,6 +143,16 @@ export const fetchFolderPath = async (
   return response.data;
 };
 
+/**
+ * Uploads a file to a specified folder on the backend.
+ *
+ * <p>The file is sent as multipart/form-data to the API.
+ *
+ * @param folderId - The unique ID of the folder where the file should be uploaded
+ * @param file - The {@link File} object to be uploaded
+ * @returns A Promise that resolves to a {@link FileItemDTO} representing the uploaded file,
+ *          including properties like id, name, type, size, and modified date
+ */
 export const uploadFile = async (
   folderId: string,
   file: File,
@@ -165,6 +172,18 @@ export const uploadFile = async (
 
   return response.data;
 };
+
+/**
+ * Updates an existing file by creating a new version on the backend.
+ *
+ * <p>The file is sent as multipart/form-data, and the backend will create a new version
+ * of the document identified by the given docId.
+ *
+ * @param docId - The unique ID of the document to update
+ * @param file - The {@link File} object containing the new version content
+ * @returns A Promise that resolves to the response data from the backend, typically
+ *          a {@link FileItemDTO} representing the updated version
+ */
 export const updateFileVersion = async (docId: string, file: File) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -185,3 +204,41 @@ export const fetchFileVersions = async (
   const response = await apiClient.get<FileItemDTO[]>(`/${docId}/versions`);
   return response.data;
 };
+/**
+ * Creates a folder in the current directory
+ * @param parentId - The id of the current folder
+ * @param folderName - The name of the new folder
+ * @returns FileItemDTO of the folder we created
+ */
+export const createFolder = async (
+  parentId: string | null,
+  folderName: string,
+): Promise<FileItemDTO> => {
+  if (!folderName.trim()) {
+    throw new Error("Folder name cannot be empty");
+  }
+
+  const response = await apiClient.post<FileItemDTO>("/folders-create", null, {
+    params: {
+      parentId,
+      folderName,
+    },
+  });
+  return response.data;
+};
+
+//@Legacy Not used anymore
+// export const fetchPaginatedFolderContent = async (
+//   folderId: string | null,
+//   pageNum: number = 0,
+//   pageSize: number | null = 10,
+// ) => {
+//   const response = await apiClient.get("/paginated-contents", {
+//     params: {
+//       parentId: folderId,
+//       pageSize: pageSize,
+//       pageNum: pageNum,
+//     },
+//   });
+//   return response.data;
+// };

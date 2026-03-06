@@ -92,6 +92,7 @@ const FileManager = () => {
     data: paginatedData,
     isLoading,
     isFetching,
+    refetch: refetchFolderContent,
   } = useFolderContent(
     selectedFolderId,
     currentPage,
@@ -225,6 +226,10 @@ const FileManager = () => {
               folderSearchText={folderSearchText}
               handleUpload={uploadHandler}
               isPending={uploadMutation.isPending}
+              selectedFolderId={selectedFolderId}
+              onFolderCreated={() => {
+                refetchFolderContent();
+              }}
             ></ActionSpacebar>
           </div>
           {/* VERSION HISTORY MODAL */}

@@ -197,7 +197,7 @@ export const getFolderPopOverContent = (
 
 export const handleFileOpen = async (
   file: FileItemDTO,
-  openPreview: (url: string, type: string) => void,
+  callback: (url: string, type: string, name?: string) => void,
 ) => {
   const response = await fetchFileContent(file.id);
 
@@ -212,7 +212,7 @@ export const handleFileOpen = async (
     contentType === "text/plain";
 
   if (canPreview) {
-    openPreview(url, contentType);
+    callback(url, contentType, file.name);
   } else {
     Modal.confirm({
       title: "Download file",
