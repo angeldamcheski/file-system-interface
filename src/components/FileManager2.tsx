@@ -4,11 +4,15 @@ import {
   fetchFolderPath,
   fetchRootFolder,
 } from "../api/apiCall";
-import { Breadcrumb, Table, Button, Space, Spin, message, Upload } from "antd";
+import { Breadcrumb, Table, Button, Space, Spin } from "antd";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useFolderContent } from "../hooks/useFolderContent";
-import { getFileIcon, handleFileOpen } from "../utils/fileManagerUtils";
+import {
+  getFileIcon,
+  handleFileOpen,
+  handleUpload,
+} from "../utils/fileManagerUtils";
 import { useFolderTreeContext } from "../context/FolderTreeContext";
 import type { FileItemDTO } from "../types/FileManagerTypes";
 import { useUploadFile } from "../hooks/useUploadFile";
@@ -68,9 +72,11 @@ const FileManager = () => {
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<string | null>(null);
-  const openPreview = (url: string, type: string) => {
+  const [previewFileName, setPreviewFileName] = useState<string | null>(null);
+  const openPreview = (url: string, type: string, name?: string) => {
     setPreviewUrl(url);
     setPreviewType(type);
+    setPreviewFileName(name || null);
   };
   const handleViewVersions = (record: FileItemDTO) => {
     setSelectedFileForVersions(record);
@@ -82,9 +88,6 @@ const FileManager = () => {
     queryFn: () => fetchFileVersions(selectedFileForVersions!.id),
     enabled: !!selectedFileForVersions?.id,
   });
-  console.log(breadcrumbs, "Breadcrumbs list");
-  console.log("Selected file for versions", selectedFileForVersions);
-  console.log("VERSIONS DATA", versions);
   const {
     data: paginatedData,
     isLoading,
@@ -111,7 +114,9 @@ const FileManager = () => {
                 setSelectedFolderId(record.id);
                 setCurrentPage(1);
               } else {
-                handleFileOpen(record, openPreview);
+                handleFileOpen(record, (url, type) =>
+                  openPreview(url, type, record.name),
+                );
               }
             }}
           >
@@ -167,38 +172,6 @@ const FileManager = () => {
       },
     },
   ];
-
-  const handleUpload = (file: File) => {
-    if (!selectedFolderId) {
-      message.error("Please select a folder first");
-      return Upload.LIST_IGNORE;
-    }
-    const isAllowedType =
-      file.type === "application/pdf" ||
-      file.type.startsWith("image/") ||
-      file.type === "text/plain";
-    const lessThanSizeLimit = file.size / 1024 / 1024 < 10;
-
-    if (!isAllowedType) {
-      message.error("File type not supported. Only PDF, Images or Text Files!");
-      return Upload.LIST_IGNORE;
-    }
-    if (!lessThanSizeLimit) {
-      message.error("File size exceeding 10MB!");
-      return Upload.LIST_IGNORE;
-    }
-    const isDuplicate = tableData.some(
-      (item: FileItemDTO) =>
-        item.name.toLowerCase() === file.name.toLowerCase() &&
-        item.type === "file",
-    );
-
-    uploadMutation.mutate({
-      folderId: selectedFolderId,
-      file,
-    });
-    return false;
-  };
   useEffect(() => {
     const timeout = setTimeout(() => {
       setInnerSearchTerm(folderSearchText);
@@ -212,7 +185,12 @@ const FileManager = () => {
   }, [selectedFolderId]);
   const tableData = paginatedData?.items ?? [];
   const uploadMutation = useUploadFile(selectedFolderId!, tableData);
-  console.log("Search term = ", innerSearchTerm);
+  const uploadHandler = useCallback(
+    (file: File) => {
+      return handleUpload(file, selectedFolderId!, uploadMutation);
+    },
+    [selectedFolderId, uploadMutation],
+  );
   return (
     <div className="max-w-6xl mx-auto  p-6 bg-neutral-50 border border-slate-200 rounded-md shadow-md">
       <h2 className="text-2xl font-semibold mb-4">File Manager</h2>
@@ -245,7 +223,7 @@ const FileManager = () => {
             <ActionSpacebar
               setFolderSearchText={setFolderSearchText}
               folderSearchText={folderSearchText}
-              handleUpload={handleUpload}
+              handleUpload={uploadHandler}
               isPending={uploadMutation.isPending}
             ></ActionSpacebar>
           </div>
@@ -259,6 +237,7 @@ const FileManager = () => {
             versions={versions || []}
             loading={versionsLoading}
             openPreview={openPreview}
+            fileName={selectedFileForVersions?.name}
           />
 
           <Spin spinning={isLoading}>
@@ -307,63 +286,10 @@ const FileManager = () => {
               }
               className="hover:cursor-pointer text-wrap "
             />
-            {/* <Modal
-              open={!!previewUrl}
-              footer={null}
-              centered={true}
-              width="75%"
-              onCancel={() => {
-                if (previewUrl) {
-                  window.URL.revokeObjectURL(previewUrl);
-                }
-                setPreviewUrl(null);
-                setPreviewType(null);
-              }}
-              styles={{
-                body: {
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: "80vh",
-                  padding: 0,
-                },
-              }}
-            >
-              {previewType?.startsWith("image/") && (
-                <img
-                  src={previewUrl!}
-                  alt="preview"
-                  style={{
-                    maxWidth: "100%",
-                    maxHeight: "100%",
-                    objectFit: "contain",
-                    borderRadius: "4px",
-                  }}
-                />
-              )}
-
-              {previewType === "application/pdf" && (
-                <iframe
-                  src={previewUrl!}
-                  title="PDF Preview"
-                  width="100%"
-                  height="600px"
-                  className="rounded-md shadow-lg"
-                />
-              )}
-
-              {previewType === "text/plain" && (
-                <iframe
-                  src={previewUrl!}
-                  title="Text Preview"
-                  width="100%"
-                  height="600px"
-                />
-              )}
-            </Modal> */}
             <FilePreviewModal
               previewUrl={previewUrl}
               previewType={previewType}
+              fileName={previewFileName}
               onClose={() => {
                 if (previewUrl) {
                   window.URL.revokeObjectURL(previewUrl);
@@ -378,5 +304,4 @@ const FileManager = () => {
     </div>
   );
 };
-
 export default FileManager;

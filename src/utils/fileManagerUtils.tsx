@@ -12,7 +12,7 @@ import React from "react";
 import type TreeNode from "../types/TreeNode";
 import type { FileItemDTO } from "../types/FileManagerTypes";
 import { fetchFileContent } from "../api/apiCall";
-import { Modal } from "antd";
+import { Modal, message, Upload } from "antd";
 export const getFolderIcon = (type?: string) => {
   switch (type) {
     case "videos":
@@ -24,6 +24,38 @@ export const getFolderIcon = (type?: string) => {
     default:
       return <FolderOutlined style={{ color: "#3b82f6", fontSize: "16px" }} />;
   }
+};
+
+export const handleUpload = (
+  file: File,
+  selectedFolderId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  uploadMutation: any,
+) => {
+  if (!selectedFolderId) {
+    message.error("Please select a folder first");
+    return Upload.LIST_IGNORE;
+  }
+  const isAllowedType =
+    file.type === "application/pdf" ||
+    file.type.startsWith("image/") ||
+    file.type === "text/plain";
+  const lessThanSizeLimit = file.size / 1024 / 1024 < 10;
+
+  if (!isAllowedType) {
+    message.error("File type not supported. Only PDF, Images or Text Files!");
+    return Upload.LIST_IGNORE;
+  }
+  if (!lessThanSizeLimit) {
+    message.error("File size exceeding 10MB!");
+    return Upload.LIST_IGNORE;
+  }
+
+  uploadMutation.mutate({
+    folderId: selectedFolderId,
+    file,
+  });
+  return false;
 };
 
 export const getFileIcon = (fileName?: string) => {

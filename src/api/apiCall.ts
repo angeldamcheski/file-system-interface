@@ -57,7 +57,6 @@ export const fetchPaginatedFolderContent = async (
       searchTerm: searchTerm,
     },
   });
-  console.log("LIST PAGINATED", response);
   return response.data;
 };
 /**
@@ -84,7 +83,7 @@ export const fetchPaginatedFolders = async (
   const response = await apiClient.get("/paginated-folders", {
     params: { parentId, pageNum, pageSize, searchTerm },
   });
-  console.log("Paginated folders response", response.data);
+
   return response.data;
 };
 /**
@@ -108,7 +107,7 @@ export const fetchFileContent = async (
     params: { documentId, disposition },
     responseType: "blob",
   });
-  console.log("BLOB RESPONSE: ", response.data);
+
   return response;
 };
 
@@ -163,7 +162,7 @@ export const uploadFile = async (
       },
     },
   );
-  console.log("Upload response file obj", response);
+
   return response.data;
 };
 export const updateFileVersion = async (docId: string, file: File) => {

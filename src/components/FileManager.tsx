@@ -76,7 +76,7 @@ const FileManager = () => {
     addDiscoveredFolders,
   } = useFolderTreeContext();
 
-  console.log(breadcrumbs, "Breadcrumbs list");
+ 
 
   const columns = [
     {

@@ -5,7 +5,18 @@ import EditOutlined from "@ant-design/icons/EditOutlined";
 import DeleteOutlined from "@ant-design/icons/DeleteOutlined";
 import Button from "antd/es/button";
 import FileUploadButton from "./FileUploadButton";
-
+/**
+ * ActionSpacebar Component
+ * * A horizontal toolbar containing search functionality and file/folder action buttons.
+ * Acts as the primary control row for the File Manager.
+ * * @component
+ * @param {Object} props
+ * @param {Function} setFolderSearchText - State setter to update the global search filter.
+ * @param {string} folderSearchText - The current controlled value of the search input.
+ * @param {Function} handleUpload - The validation logic passed to the FileUploadButton.
+ * @param {boolean} isPending - Indicates if a file upload mutation is currently in progress.
+ * @returns {React.ReactElement}
+ */
 const ActionSpacebar = ({
   setFolderSearchText,
   folderSearchText,
