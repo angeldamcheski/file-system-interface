@@ -1,10 +1,26 @@
-import { FolderOutlined, HistoryOutlined } from "@ant-design/icons";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  FolderOpenOutlined,
+  FolderOutlined,
+  HistoryOutlined,
+} from "@ant-design/icons";
 import {
   fetchFileVersions,
   fetchFolderPath,
   fetchRootFolder,
 } from "../api/apiCall";
-import { Breadcrumb, Table, Button, Space, Spin } from "antd";
+import {
+  Breadcrumb,
+  Table,
+  Button,
+  Space,
+  Spin,
+  type MenuProps,
+  Dropdown,
+  Modal,
+  Input,
+} from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect, useCallback } from "react";
 import { useFolderContent } from "../hooks/useFolderContent";
@@ -19,6 +35,8 @@ import { useUploadFile } from "../hooks/useUploadFile";
 import { VersionHistoryModal } from "./VersionHistoryModal";
 import FilePreviewModal from "./FilePreviewModal";
 import ActionSpacebar from "./ActionSpacebar";
+import { useDeleteFolder } from "../hooks/useDeleteFolder";
+import { useRenameFolder } from "../hooks/useRenameFolder";
 /**
  * Main File Manager component – combines folder tree navigation (left sidebar)
  * with paginated content view (right/main area) of the currently selected folder.
@@ -48,6 +66,44 @@ const FileManager = () => {
   const [selectedFileForVersions, setSelectedFileForVersions] =
     useState<FileItemDTO | null>(null);
   const [isStacked, setIsStacked] = useState(true);
+  const { confirmDelete, deletingId } = useDeleteFolder(selectedFolderId);
+  const [renamingFolder, setRenamingFolder] = useState<FileItemDTO | null>(
+    null,
+  );
+  const [newName, setNewName] = useState("");
+  const { mutate: renameFolder, isPending: isRenamePending } =
+    useRenameFolder(selectedFolderId);
+  const handleRenameSubmit = () => {
+    if (renamingFolder && newName.trim() && newName !== renamingFolder.name) {
+      renameFolder({ folderId: renamingFolder.id, newName });
+    }
+    setRenamingFolder(null);
+  };
+  const getContextMenuItems = (record: FileItemDTO): MenuProps["items"] => [
+    {
+      key: "open",
+      label: "Open Folder",
+      icon: <FolderOpenOutlined />,
+      onClick: () => setSelectedFolderId(record.id),
+    },
+    {
+      key: "rename",
+      label: "Rename",
+      icon: <EditOutlined />,
+      onClick: () => {
+        setRenamingFolder(record);
+        setNewName(record.name); // Pre-fill with current name
+      },
+    },
+    { type: "divider" },
+    {
+      key: "delete",
+      label: `Delete ${record.name}`,
+      icon: <DeleteOutlined />,
+      danger: true,
+      onClick: () => confirmDelete(record),
+    },
+  ];
   const {
     data: rootFolder,
     // isLoading: rootFolderLoading, // TODO take in consideration on loading spinner
@@ -106,6 +162,7 @@ const FileManager = () => {
       key: "name",
       render: (_: string, record: FileItemDTO) => {
         const isFolder = record.type === "folder";
+        const isDeleting = deletingId === record.id;
         return (
           <span
             className={`flex items-center gap-2 cursor-pointer ${isFolder ? "text-slate-800" : "text-blue-600 hover:underline "} `}
@@ -270,6 +327,44 @@ const FileManager = () => {
                 },
                 pageSizeOptions: ["5", "10", "15", "20"],
               }}
+              components={{
+                body: {
+                  row: (props: any) => {
+                    const rowId = props["data-row-key"];
+                    const isDeleting = deletingId === rowId;
+                    const record = tableData.find((i) => i.id === rowId);
+
+                    // Define row structure with loading overlay
+                    const rowContent = (
+                      <tr
+                        {...props}
+                        className={`${props.className} ${isDeleting ? "opacity-50 pointer-events-none relative" : ""}`}
+                      >
+                        {isDeleting && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-white/20 z-10">
+                            <Spin size="small" tip="Deleting..." />
+                          </div>
+                        )}
+                        {props.children}
+                      </tr>
+                    );
+
+                    // Apply context menu only to folders
+                    if (record?.type === "folder") {
+                      return (
+                        <Dropdown
+                          menu={{ items: getContextMenuItems(record) }}
+                          trigger={["contextMenu"]}
+                          disabled={isDeleting}
+                        >
+                          {rowContent}
+                        </Dropdown>
+                      );
+                    }
+                    return rowContent;
+                  },
+                },
+              }}
               onRow={(record) => {
                 return {
                   onClick: () => {
@@ -291,6 +386,22 @@ const FileManager = () => {
               }
               className="hover:cursor-pointer text-wrap "
             />
+            <Modal
+              title={`Rename ${renamingFolder?.type === "folder" ? "Folder" : "File"}`}
+              open={!!renamingFolder}
+              onOk={handleRenameSubmit}
+              confirmLoading={isRenamePending}
+              onCancel={() => setRenamingFolder(null)}
+              destroyOnClose
+            >
+              <Input
+                autoFocus
+                placeholder="Enter new name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onPressEnter={handleRenameSubmit}
+              />
+            </Modal>
             <FilePreviewModal
               previewUrl={previewUrl}
               previewType={previewType}

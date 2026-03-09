@@ -1,8 +1,6 @@
 import Search from "antd/es/input/Search";
 import Space from "antd/es/space";
 import PlusOutlined from "@ant-design/icons/PlusOutlined";
-import EditOutlined from "@ant-design/icons/EditOutlined";
-import DeleteOutlined from "@ant-design/icons/DeleteOutlined";
 import Button from "antd/es/button";
 import FileUploadButton from "./FileUploadButton";
 import { useState } from "react";
@@ -64,10 +62,6 @@ const ActionSpacebar = ({
         </Button>
         <div className="w-px h-4 bg-slate-200" />
         <FileUploadButton handleUpload={handleUpload} isPending={isPending} />
-
-        <div className="w-px h-4 bg-slate-200" />
-        <Button type="text" icon={<EditOutlined />} />
-        <Button type="text" icon={<DeleteOutlined />} />
       </Space>
       <Modal
         title="Create New Folder"

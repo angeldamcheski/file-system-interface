@@ -111,8 +111,6 @@ export const fetchFileContent = async (
   return response;
 };
 
-
-
 /**
  * Fetches the full path of a folder from the backend given its ID.
  *
@@ -226,7 +224,48 @@ export const createFolder = async (
   });
   return response.data;
 };
+export const deleteFolderRecursive = async (
+  folderId: string,
+): Promise<void> => {
+  await apiClient.delete(`/${folderId}/delete`);
+};
+export const renameFolder = async (
+  folderId: string,
+  newName: string,
+): Promise<FileItemDTO> => {
+  const response = await apiClient.patch<FileItemDTO>(
+    `/${folderId}/rename`,
+    null,
+    {
+      params: { newName },
+    },
+  );
+  return response.data;
+};
 
+/**
+ * Renames a file in the backend.
+ */
+export const renameFile = async (
+  fileId: string,
+  newName: string,
+): Promise<FileItemDTO> => {
+  const response = await apiClient.patch<FileItemDTO>(
+    `/files/${fileId}/rename`,
+    null,
+    {
+      params: { newName },
+    },
+  );
+  return response.data;
+};
+
+/**
+ * Deletes a file in the backend.
+ */
+export const deleteFile = async (fileId: string): Promise<void> => {
+  await apiClient.delete(`/files/${fileId}`);
+};
 //@Legacy Not used anymore
 // export const fetchPaginatedFolderContent = async (
 //   folderId: string | null,
