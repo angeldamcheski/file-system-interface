@@ -1,4 +1,4 @@
-import { Button, Space, type MenuProps } from "antd";
+import { Button, Space, Spin, type MenuProps } from "antd";
 import type { FileItemDTO } from "../types/FileManagerTypes";
 import {
   FolderOpenOutlined,
@@ -17,6 +17,7 @@ interface ColumnProps {
   setRenamingFolder: (record: FileItemDTO) => void;
   setNewName: (name: string) => void;
   deletingId: string | null;
+  isDeleting: boolean;
 }
 
 export const useFileManagerColumns = ({
@@ -28,9 +29,11 @@ export const useFileManagerColumns = ({
   setRenamingFolder,
   setNewName,
   deletingId,
+  isDeleting,
 }: ColumnProps) => {
   const getContextMenuItems = (record: FileItemDTO): MenuProps["items"] => {
     const isFolder = record.type === "folder";
+    const isThisItemDeleting = deletingId === record.id;
     return [
       {
         key: "open",
@@ -58,9 +61,10 @@ export const useFileManagerColumns = ({
       { type: "divider" },
       {
         key: "delete",
-        label: `Delete ${record.name}`,
-        icon: <DeleteOutlined />,
+        label: isDeleting ? `Deleting...` : `Delete ${record.name}`,
+        icon: isThisItemDeleting ? <Spin size="small" /> : <DeleteOutlined />,
         danger: true,
+        disabled: isThisItemDeleting,
         onClick: () => confirmDelete(record),
       },
     ];
@@ -123,12 +127,20 @@ export const useFileManagerColumns = ({
       width: 100,
       render: (_: any, record: FileItemDTO) => {
         const isFile = record.type === "file";
+        const isThisItemDeleting = deletingId === record.id;
         return (
           <Space size="middle">
             {isFile ? (
               <Button
                 type="text"
-                icon={<HistoryOutlined />}
+                disabled={isThisItemDeleting}
+                icon={
+                  isThisItemDeleting ? (
+                    <Spin size="small" />
+                  ) : (
+                    <HistoryOutlined />
+                  )
+                }
                 onClick={(e) => {
                   e.stopPropagation();
                   handleViewVersions(record);
@@ -139,7 +151,6 @@ export const useFileManagerColumns = ({
         );
       },
     },
-    // ... rest of your columns
   ];
 
   return { columns, getContextMenuItems };

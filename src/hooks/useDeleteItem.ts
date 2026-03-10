@@ -37,7 +37,7 @@ export const useDeleteItem = (selectedFolderId: string | null) => {
       content:
         item.type === "folder"
           ? "This will delete all files and subfolders."
-          : "This will permanently delete the file.",
+          : "This will permanently delete the file and all of its previous versions.",
       okText: "Delete",
       okType: "danger",
       onOk: () => mutation.mutate(item),
