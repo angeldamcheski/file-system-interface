@@ -35,8 +35,10 @@ import { useUploadFile } from "../hooks/useUploadFile";
 import { VersionHistoryModal } from "./VersionHistoryModal";
 import FilePreviewModal from "./FilePreviewModal";
 import ActionSpacebar from "./ActionSpacebar";
-import { useDeleteFolder } from "../hooks/useDeleteFolder";
 import { useRenameFolder } from "../hooks/useRenameFolder";
+import { useRenameItem } from "../hooks/useRenameItem";
+import { useDeleteItem } from "../hooks/useDeleteItem";
+import { useFileManagerColumns } from "../hooks/useFileManagerColumns";
 /**
  * Main File Manager component – combines folder tree navigation (left sidebar)
  * with paginated content view (right/main area) of the currently selected folder.
@@ -58,6 +60,7 @@ const FileManager = () => {
     folderSearchText,
     setFolderSearchText,
   } = useFolderTreeContext();
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [innerSearchTerm, setInnerSearchTerm] = useState("");
@@ -66,44 +69,82 @@ const FileManager = () => {
   const [selectedFileForVersions, setSelectedFileForVersions] =
     useState<FileItemDTO | null>(null);
   const [isStacked, setIsStacked] = useState(true);
-  const { confirmDelete, deletingId } = useDeleteFolder(selectedFolderId);
   const [renamingFolder, setRenamingFolder] = useState<FileItemDTO | null>(
     null,
   );
   const [newName, setNewName] = useState("");
-  const { mutate: renameFolder, isPending: isRenamePending } =
-    useRenameFolder(selectedFolderId);
+  const { confirmDelete, deletingId } = useDeleteItem(selectedFolderId);
+  const { mutate: renameItem, isPending: isRenamePending } =
+    useRenameItem(selectedFolderId);
   const handleRenameSubmit = () => {
     if (renamingFolder && newName.trim() && newName !== renamingFolder.name) {
-      renameFolder({ folderId: renamingFolder.id, newName });
+      renameItem({ item: renamingFolder, newName });
     }
     setRenamingFolder(null);
   };
-  const getContextMenuItems = (record: FileItemDTO): MenuProps["items"] => [
-    {
-      key: "open",
-      label: "Open Folder",
-      icon: <FolderOpenOutlined />,
-      onClick: () => setSelectedFolderId(record.id),
-    },
-    {
-      key: "rename",
-      label: "Rename",
-      icon: <EditOutlined />,
-      onClick: () => {
-        setRenamingFolder(record);
-        setNewName(record.name); // Pre-fill with current name
-      },
-    },
-    { type: "divider" },
-    {
-      key: "delete",
-      label: `Delete ${record.name}`,
-      icon: <DeleteOutlined />,
-      danger: true,
-      onClick: () => confirmDelete(record),
-    },
-  ];
+
+  // const getContextMenuItems = (record: FileItemDTO): MenuProps["items"] => [
+  //   {
+  //     key: "open",
+  //     label: "Open Folder",
+  //     icon: <FolderOpenOutlined />,
+  //     onClick: () => setSelectedFolderId(record.id),
+  //   },
+  //   {
+  //     key: "rename",
+  //     label: "Rename",
+  //     icon: <EditOutlined />,
+  //     onClick: () => {
+  //       setRenamingFolder(record);
+  //       setNewName(record.name); // Pre-fill with current name
+  //     },
+  //   },
+  //   { type: "divider" },
+  //   {
+  //     key: "delete",
+  //     label: `Delete ${record.name}`,
+  //     icon: <DeleteOutlined />,
+  //     danger: true,
+  //     onClick: () => confirmDelete(record),
+  //   },
+  // ];
+  // const getContextMenuItems = (record: FileItemDTO): MenuProps["items"] => {
+  //   const isFolder = record.type === "folder";
+
+  //   return [
+  //     {
+  //       key: "open",
+  //       label: isFolder ? "Open Folder" : "Preview File",
+  //       icon: isFolder ? <FolderOpenOutlined /> : <EditOutlined />,
+  //       onClick: () => {
+  //         if (isFolder) {
+  //           setSelectedFolderId(record.id);
+  //         } else {
+  //           handleFileOpen(record, (url, type) =>
+  //             openPreview(url, type, record.name),
+  //           );
+  //         }
+  //       },
+  //     },
+  //     {
+  //       key: "rename",
+  //       label: "Rename",
+  //       icon: <EditOutlined />,
+  //       onClick: () => {
+  //         setRenamingFolder(record);
+  //         setNewName(record.name);
+  //       },
+  //     },
+  //     { type: "divider" },
+  //     {
+  //       key: "delete",
+  //       label: `Delete ${record.name}`,
+  //       icon: <DeleteOutlined />,
+  //       danger: true,
+  //       onClick: () => confirmDelete(record),
+  //     },
+  //   ];
+  // };
   const {
     data: rootFolder,
     // isLoading: rootFolderLoading, // TODO take in consideration on loading spinner
@@ -155,81 +196,81 @@ const FileManager = () => {
     pageSize,
     innerSearchTerm,
   );
-  const columns = [
-    {
-      title: "Name",
-      dataIndex: "name",
-      key: "name",
-      render: (_: string, record: FileItemDTO) => {
-        const isFolder = record.type === "folder";
-        const isDeleting = deletingId === record.id;
-        return (
-          <span
-            className={`flex items-center gap-2 cursor-pointer ${isFolder ? "text-slate-800" : "text-blue-600 hover:underline "} `}
-            // onClick={() => handleFileOpen(record, openPreview)}
-            onClick={() => {
-              if (isFolder) {
-                setSelectedFolderId(record.id);
-                setCurrentPage(1);
-              } else {
-                handleFileOpen(record, (url, type) =>
-                  openPreview(url, type, record.name),
-                );
-              }
-            }}
-          >
-            {isFolder ? (
-              <FolderOutlined style={{ color: "#3b82f6" }} />
-            ) : (
-              getFileIcon(record.name)
-            )}
-            {record.name}
-          </span>
-        );
-      },
-    },
-    {
-      title: "Size",
-      dataIndex: "size",
-      key: "size",
-      render: (s: string) => s || "--",
-    },
-    {
-      title: "Modified Date",
-      dataIndex: "modifiedDate",
-      key: "modified",
-      render: (date?: string) =>
-        date ? new Date(date).toLocaleString() : "--",
-    },
-    {
-      title: "Author",
-      dataIndex: "ownerName",
-      key: "ownerName",
-      render: (s: string) => s || "Owner unknown",
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      width: 100,
-      render: (_: any, record: FileItemDTO) => {
-        const isFile = record.type === "file";
-        return (
-          <Space size="middle">
-            {isFile ? (
-              <Button
-                type="text"
-                icon={<HistoryOutlined />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleViewVersions(record);
-                }}
-              />
-            ) : null}
-          </Space>
-        );
-      },
-    },
-  ];
+  // const columns = [
+  //   {
+  //     title: "Name",
+  //     dataIndex: "name",
+  //     key: "name",
+  //     render: (_: string, record: FileItemDTO) => {
+  //       const isFolder = record.type === "folder";
+  //       const isDeleting = deletingId === record.id;
+  //       return (
+  //         <span
+  //           className={`flex items-center gap-2 cursor-pointer ${isFolder ? "text-slate-800" : "text-blue-600 hover:underline "} `}
+  //           // onClick={() => handleFileOpen(record, openPreview)}
+  //           onClick={() => {
+  //             if (isFolder) {
+  //               setSelectedFolderId(record.id);
+  //               setCurrentPage(1);
+  //             } else {
+  //               handleFileOpen(record, (url, type) =>
+  //                 openPreview(url, type, record.name),
+  //               );
+  //             }
+  //           }}
+  //         >
+  //           {isFolder ? (
+  //             <FolderOutlined style={{ color: "#3b82f6" }} />
+  //           ) : (
+  //             getFileIcon(record.name)
+  //           )}
+  //           {record.name}
+  //         </span>
+  //       );
+  //     },
+  //   },
+  //   {
+  //     title: "Size",
+  //     dataIndex: "size",
+  //     key: "size",
+  //     render: (s: string) => s || "--",
+  //   },
+  //   {
+  //     title: "Modified Date",
+  //     dataIndex: "modifiedDate",
+  //     key: "modified",
+  //     render: (date?: string) =>
+  //       date ? new Date(date).toLocaleString() : "--",
+  //   },
+  //   {
+  //     title: "Author",
+  //     dataIndex: "ownerName",
+  //     key: "ownerName",
+  //     render: (s: string) => s || "Owner unknown",
+  //   },
+  //   {
+  //     title: "Actions",
+  //     key: "actions",
+  //     width: 100,
+  //     render: (_: any, record: FileItemDTO) => {
+  //       const isFile = record.type === "file";
+  //       return (
+  //         <Space size="middle">
+  //           {isFile ? (
+  //             <Button
+  //               type="text"
+  //               icon={<HistoryOutlined />}
+  //               onClick={(e) => {
+  //                 e.stopPropagation();
+  //                 handleViewVersions(record);
+  //               }}
+  //             />
+  //           ) : null}
+  //         </Space>
+  //       );
+  //     },
+  //   },
+  // ];
   useEffect(() => {
     const timeout = setTimeout(() => {
       setInnerSearchTerm(folderSearchText);
@@ -249,6 +290,16 @@ const FileManager = () => {
     },
     [selectedFolderId, uploadMutation],
   );
+  const { columns, getContextMenuItems } = useFileManagerColumns({
+    setSelectedFolderId,
+    setCurrentPage,
+    openPreview,
+    handleViewVersions,
+    confirmDelete,
+    setRenamingFolder,
+    setNewName,
+    deletingId,
+  });
   return (
     <div className="max-w-6xl mx-auto  p-6 bg-neutral-50 border border-slate-200 rounded-md shadow-md">
       <h2 className="text-2xl font-semibold mb-4">File Manager</h2>
@@ -342,7 +393,7 @@ const FileManager = () => {
                       >
                         {isDeleting && (
                           <div className="absolute inset-0 flex items-center justify-center bg-white/20 z-10">
-                            <Spin size="small" tip="Deleting..." />
+                            <Spin size="small" description="Deleting..." />
                           </div>
                         )}
                         {props.children}
@@ -350,7 +401,18 @@ const FileManager = () => {
                     );
 
                     // Apply context menu only to folders
-                    if (record?.type === "folder") {
+                    // if (record?.type === "folder") {
+                    //   return (
+                    //     <Dropdown
+                    //       menu={{ items: getContextMenuItems(record) }}
+                    //       trigger={["contextMenu"]}
+                    //       disabled={isDeleting}
+                    //     >
+                    //       {rowContent}
+                    //     </Dropdown>
+                    //   );
+                    // }
+                    if (record) {
                       return (
                         <Dropdown
                           menu={{ items: getContextMenuItems(record) }}
@@ -367,12 +429,22 @@ const FileManager = () => {
               }}
               onRow={(record) => {
                 return {
-                  onClick: () => {
-                    if (record.type === "file") {
+                  onClick: (event) => {
+                    if (
+                      (event.target as HTMLElement).closest(
+                        ".ant-dropdown-trigger",
+                      )
+                    ) {
                       return;
                     }
-                    setSelectedFolderId(record.id);
-                    setCurrentPage(1);
+                    if (record.type === "folder") {
+                      setSelectedFolderId(record.id);
+                      setCurrentPage(1);
+                    } else {
+                      handleFileOpen(record, (url, type) =>
+                        openPreview(url, type, record.name),
+                      );
+                    }
                   },
                 };
               }}
@@ -392,7 +464,7 @@ const FileManager = () => {
               onOk={handleRenameSubmit}
               confirmLoading={isRenamePending}
               onCancel={() => setRenamingFolder(null)}
-              destroyOnClose
+              destroyOnHidden
             >
               <Input
                 autoFocus

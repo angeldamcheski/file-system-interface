@@ -17,7 +17,7 @@ export const useRenameItem = (selectedFolderId: string | null) => {
       message.success("Renamed successfully");
 
       queryClient.invalidateQueries({
-        queryKey: ["folderContent"],
+        queryKey: ["folderContent", selectedFolderId],
       });
 
       queryClient.invalidateQueries({

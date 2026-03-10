@@ -2,21 +2,27 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Modal, message } from "antd";
 import { deleteFile, deleteFolderRecursive } from "../api/apiCall";
 import type { FileItemDTO } from "../types/FileManagerTypes";
+import { useState } from "react";
 
 export const useDeleteItem = (selectedFolderId: string | null) => {
   const queryClient = useQueryClient();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const mutation = useMutation({
-    mutationFn: (item: FileItemDTO) =>
-      item.type === "folder"
-        ? deleteFolderRecursive(item.id)
-        : deleteFile(item.id),
-
+    mutationFn: async (item: FileItemDTO) => {
+      setDeletingId(item.id);
+      if (item.type === "folder") {
+        await deleteFolderRecursive(item.id);
+      } else {
+        await deleteFile(item.id);
+      }
+    },
+    onSettled: () => setDeletingId(null),
     onSuccess: () => {
       message.success("Deleted successfully");
 
       queryClient.invalidateQueries({
-        queryKey: ["folderContent"],
+        queryKey: ["folderContent", selectedFolderId],
       });
 
       queryClient.invalidateQueries({
@@ -40,6 +46,7 @@ export const useDeleteItem = (selectedFolderId: string | null) => {
 
   return {
     confirmDelete,
+    deletingId,
     deleting: mutation.isPending,
   };
 };
