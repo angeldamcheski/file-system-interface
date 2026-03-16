@@ -292,3 +292,25 @@ export const advancedFileSearch = async (
   );
   return response.data;
 };
+
+export const fetchFileNetClasses = async (): Promise<
+  {
+    label: string;
+    value: string;
+  }[]
+> => {
+  const response = await apiClient.get("/api/search/classes");
+  return response.data;
+};
+
+export const fetchClassProperties = async (
+  className: string,
+): Promise<
+  { value: string; label: string; dataType: string; isSearchable: boolean }[]
+> => {
+  const response = await apiClient.get(
+    `/api/search/classes/${className}/properties`,
+  );
+  console.log("Class properties definitions", response.data);
+  return response.data;
+};

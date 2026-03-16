@@ -14,6 +14,7 @@ export interface SearchCriterionDTO {
   property: string;
   operator: SearchOperator;
   values: string[];
+  dataType: string;
 }
 
 export interface SearchRequestDTO {

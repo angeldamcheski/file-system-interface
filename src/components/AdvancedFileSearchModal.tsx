@@ -1,30 +1,19 @@
-import React from "react";
-import { Modal, Form, Select, Input, Button, Space, Divider } from "antd";
+// import React, { useEffect } from "react";
+import { Modal, Form, Select, Input, Button, Space, Divider, Spin } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
-import {
-  AVAILABLE_OPERATORS, // Using the new constant
+import { useQuery } from "@tanstack/react-query";
+import { fetchFileNetClasses, fetchClassProperties } from "../api/apiCall";
+import { AVAILABLE_OPERATORS } from "../types/AdvancedSearchTypes";
+import type {
+  SearchRequestDTO,
+  SearchCriterionDTO,
 } from "../types/AdvancedSearchTypes";
-import type { SearchRequestDTO } from "../types/AdvancedSearchTypes";
+
 interface AdvancedSearchModalProps {
   visible: boolean;
   onClose: () => void;
   onSearch: (request: SearchRequestDTO) => void;
 }
-
-// Predefined configuration for FileNet classes
-const SEARCHABLE_CLASSES = [
-  { label: "Document", value: "Document" },
-  { label: "Annex Document", value: "AnexDocument" },
-  { label: "Archive", value: "ArchiveDocument" },
-];
-
-// Predefined configuration for FileNet properties
-const PROPERTY_OPTIONS = [
-  { label: "Document Title", value: "DocumentTitle" },
-  { label: "Annex Number", value: "AnexNumber" },
-  { label: "Creator", value: "Creator" },
-  { label: "Date Created", value: "DateCreated" },
-];
 
 export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
   visible,
@@ -33,19 +22,38 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
 }) => {
   const [form] = Form.useForm();
 
+  // Watch the selected class to trigger property fetching
+  const selectedClass = Form.useWatch("baseClassName", form);
+
+  // 1. Fetch available classes
+  const { data: classOptions, isLoading: classesLoading } = useQuery({
+    queryKey: ["fileNetClasses"],
+    queryFn: fetchFileNetClasses,
+    enabled: visible,
+  });
+
+  // 2. Fetch properties for the currently selected class
+  const { data: propertyOptions, isLoading: propsLoading } = useQuery({
+    queryKey: ["classProperties", selectedClass],
+    queryFn: () => fetchClassProperties(selectedClass!),
+    enabled: visible && !!selectedClass,
+  });
+  console.log("Property options", propertyOptions);
   const handleFinish = (values: any) => {
     const request: SearchRequestDTO = {
       baseClassName: values.baseClassName,
       searchSubclasses: true,
       andSearch: values.andSearch === "AND",
-      criteria: values.criteria.map((c: any) => ({
-        property: c.property,
-        operator: c.operator,
-        values: [c.value],
-      })),
+      criteria: values.criteria.map(
+        (c: any): SearchCriterionDTO => ({
+          property: c.property,
+          operator: c.operator,
+          values: [c.value],
+          dataType: c.dataType, // Pass the dataType to the backend
+        }),
+      ),
     };
     onSearch(request);
-    form.resetFields(); // Optional: reset after search
   };
 
   return (
@@ -54,9 +62,9 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
       open={visible}
       onCancel={onClose}
       onOk={() => form.submit()}
-      width={800}
+      width={850}
       okText="Search"
-      destroyOnClose // Ensures state is clean when reopened
+      destroyOnClose
     >
       <Form
         form={form}
@@ -65,16 +73,20 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
         initialValues={{
           baseClassName: "Document",
           andSearch: "AND",
-          criteria: [{ property: "DocumentTitle", operator: "STARTSWITH" }],
+          criteria: [{ property: "DocumentTitle", operator: "LIKE" }],
         }}
       >
         <Space size="large">
           <Form.Item
             name="baseClassName"
             label="Search In Class"
-            style={{ width: 220 }}
+            style={{ width: 250 }}
           >
-            <Select options={SEARCHABLE_CLASSES} />
+            <Select
+              options={classOptions}
+              loading={classesLoading}
+              placeholder="Select Class"
+            />
           </Form.Item>
 
           <Form.Item
@@ -91,7 +103,7 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
           </Form.Item>
         </Space>
 
-        <Divider orientation="left">Search Criteria</Divider>
+        <Divider orientation="horizontal">Search Criteria</Divider>
 
         <Form.List name="criteria">
           {(fields, { add, remove }) => (
@@ -110,12 +122,30 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
                   >
                     <Select
                       placeholder="Field"
-                      options={PROPERTY_OPTIONS}
-                      style={{ width: 180 }}
+                      loading={propsLoading}
+                      options={propertyOptions}
+                      style={{ width: 220 }}
+                      onChange={(val) => {
+                        // Find the selected property metadata to get the dataType
+                        const propMeta = propertyOptions?.find(
+                          (p) => p.value === val,
+                        );
+                        if (propMeta) {
+                          form.setFieldValue(
+                            ["criteria", name, "dataType"],
+                            propMeta.dataType,
+                          );
+                        }
+                      }}
                     />
                   </Form.Item>
 
-                  {/* Operator Selection - Now using AVAILABLE_OPERATORS constant */}
+                  {/* Hidden field for dataType metadata */}
+                  <Form.Item {...restField} name={[name, "dataType"]} hidden>
+                    <Input />
+                  </Form.Item>
+
+                  {/* Operator Selection */}
                   <Form.Item
                     {...restField}
                     name={[name, "operator"]}
@@ -137,7 +167,6 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
                     <Input placeholder="Value" style={{ width: 200 }} />
                   </Form.Item>
 
-                  {/* Remove Button */}
                   {fields.length > 1 && (
                     <Button
                       type="text"
@@ -149,17 +178,14 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
                 </Space>
               ))}
 
-              <Form.Item>
-                <Button
-                  type="dashed"
-                  onClick={() => add()}
-                  block
-                  icon={<PlusOutlined />}
-                  style={{ marginTop: 10 }}
-                >
-                  Add Search Criterion
-                </Button>
-              </Form.Item>
+              <Button
+                type="dashed"
+                onClick={() => add()}
+                block
+                icon={<PlusOutlined />}
+              >
+                Add Search Criterion
+              </Button>
             </>
           )}
         </Form.List>
