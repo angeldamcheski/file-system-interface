@@ -9,6 +9,7 @@ import {
   Divider,
   Spin,
   Card,
+  DatePicker,
 } from "antd";
 import {
   PlusOutlined,
@@ -24,6 +25,7 @@ import type {
   SearchRequestDTO,
   SearchCriterionDTO,
 } from "../types/AdvancedSearchTypes";
+import dayjs from "dayjs";
 
 interface AdvancedSearchModalProps {
   visible: boolean;
@@ -60,14 +62,18 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
       baseClassName: values.baseClassName,
       searchSubclasses: true,
       andSearch: values.andSearch === "AND",
-      criteria: values.criteria.map(
-        (c: any): SearchCriterionDTO => ({
+      criteria: values.criteria.map((c: any): SearchCriterionDTO => {
+        let formattedValue = c.value;
+        if (dayjs.isDayjs(c.value)) {
+          formattedValue = c.value.format("YYYY-MM-DDTHH:mm:ss");
+        }
+        return {
           property: c.property,
           operator: c.operator,
-          values: [c.value],
+          values: [formattedValue],
           dataType: c.dataType, // Pass the dataType to the backend
-        }),
-      ),
+        };
+      }),
     };
     onSearch(request);
   };
@@ -184,12 +190,49 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
                   </Form.Item>
 
                   {/* Value Input */}
-                  <Form.Item
+                  {/* <Form.Item
                     {...restField}
                     name={[name, "value"]}
                     rules={[{ required: true, message: "Required" }]}
                   >
                     <Input placeholder="Value" style={{ width: 200 }} />
+                  </Form.Item> */}
+                  <Form.Item
+                    noStyle
+                    // Only re-render this field if the property (and thus dataType) changes
+                    shouldUpdate={(prev, curr) =>
+                      prev.criteria?.[name]?.property !==
+                      curr.criteria?.[name]?.property
+                    }
+                  >
+                    {({ getFieldValue }) => {
+                      // Get the dataType we stored in the hidden field during onChange
+                      const dataType = getFieldValue([
+                        "criteria",
+                        name,
+                        "dataType",
+                      ]);
+                      const isDate =
+                        dataType === "DATE" || dataType === "DATETIMEOBJECT";
+
+                      return (
+                        <Form.Item
+                          {...restField}
+                          name={[name, "value"]}
+                          rules={[{ required: true, message: "Required" }]}
+                        >
+                          {isDate ? (
+                            <DatePicker
+                              showTime
+                              style={{ width: 200 }}
+                              placeholder="Select Date"
+                            />
+                          ) : (
+                            <Input placeholder="Value" style={{ width: 200 }} />
+                          )}
+                        </Form.Item>
+                      );
+                    }}
                   </Form.Item>
 
                   {fields.length > 1 && (
