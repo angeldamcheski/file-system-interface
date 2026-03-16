@@ -1,6 +1,22 @@
 // import React, { useEffect } from "react";
-import { Modal, Form, Select, Input, Button, Space, Divider, Spin } from "antd";
-import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import {
+  Modal,
+  Form,
+  Select,
+  Input,
+  Button,
+  Space,
+  Divider,
+  Spin,
+  Card,
+} from "antd";
+import {
+  PlusOutlined,
+  DeleteOutlined,
+  CloseOutlined,
+  SearchOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
 import { fetchFileNetClasses, fetchClassProperties } from "../api/apiCall";
 import { AVAILABLE_OPERATORS } from "../types/AdvancedSearchTypes";
@@ -57,7 +73,7 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
   };
 
   return (
-    <Modal
+    <Card
       title="Advanced File Search"
       open={visible}
       onCancel={onClose}
@@ -65,6 +81,15 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
       width={850}
       okText="Search"
       destroyOnClose
+      extra={
+        <Button
+          type="text"
+          icon={<CloseOutlined />}
+          onClick={onClose}
+          className="hover:text-red-500"
+        />
+      }
+      style={{ marginTop: 20, borderRadius: 0, borderLeft: 0, borderRight: 0 }}
     >
       <Form
         form={form}
@@ -189,7 +214,24 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
             </>
           )}
         </Form.List>
+        <Divider style={{ margin: "12px 0" }} />
+
+        {/* --- SUBMIT ACTIONS --- */}
+        <div
+          style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}
+        >
+          <Button icon={<ReloadOutlined />} onClick={() => form.resetFields()}>
+            Reset
+          </Button>
+          <Button
+            type="primary"
+            icon={<SearchOutlined />}
+            onClick={() => form.submit()} // Manual trigger
+          >
+            Run Advanced Search
+          </Button>
+        </div>
       </Form>
-    </Modal>
+    </Card>
   );
 };

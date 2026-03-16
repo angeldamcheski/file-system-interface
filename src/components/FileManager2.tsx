@@ -22,7 +22,7 @@ import type {
   SearchRequestDTO,
 } from "../types/AdvancedSearchTypes";
 import { useAdvancedFileSearch } from "../hooks/useAdvancedFileSearch";
-import { AdvancedSearchModal } from "./AdvancedFileSearchModal";
+import { AdvancedSearchModal } from "./AdvancedFileSearchPanel";
 /**
  * Main File Manager component – combines folder tree navigation (left sidebar)
  * with paginated content view (right/main area) of the currently selected folder.
@@ -175,7 +175,7 @@ const FileManager = () => {
     setSearchCriteria(request.criteria);
     setIsAdvancedSearch(true);
     setCurrentPage(1);
-    setIsAdvancedSearchModalOpen(false);
+    // setIsAdvancedSearchModalOpen(false);
   };
   return (
     <div className="max-w-6xl mx-auto  p-6 bg-neutral-50 border border-slate-200 rounded-md shadow-md">
@@ -196,6 +196,7 @@ const FileManager = () => {
                     onClick={() => {
                       setCurrentPage(1);
                       setSelectedFolderId(part.Id);
+                      setIsAdvancedSearch(false);
                     }}
                   >
                     {part.folderName}
@@ -204,7 +205,16 @@ const FileManager = () => {
               }))}
             />
           </div>
-
+          {isAdvancedSearchModalOpen && (
+            <AdvancedSearchModal
+              visible={isAdvancedSearchModalOpen}
+              onClose={() => {
+                setIsAdvancedSearchModalOpen(false);
+                setIsAdvancedSearch(false);
+              }}
+              onSearch={handleAdvancedSearchSubmit}
+            />
+          )}
           <div className="p-3 flex justify-end border-b border-slate-200 border-t-slate-200">
             <ActionSpacebar
               setFolderSearchText={setFolderSearchText}
@@ -353,13 +363,6 @@ const FileManager = () => {
                 setPreviewType(null);
               }}
             />
-            {isAdvancedSearchModalOpen && (
-              <AdvancedSearchModal
-                visible={isAdvancedSearchModalOpen}
-                onClose={() => setIsAdvancedSearchModalOpen(false)}
-                onSearch={handleAdvancedSearchSubmit}
-              />
-            )}
           </Spin>
         </div>
       </div>
