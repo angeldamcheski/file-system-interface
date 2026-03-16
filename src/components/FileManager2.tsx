@@ -17,6 +17,12 @@ import ActionSpacebar from "./ActionSpacebar";
 import { useRenameItem } from "../hooks/useRenameItem";
 import { useDeleteItem } from "../hooks/useDeleteItem";
 import { useFileManagerColumns } from "../hooks/useFileManagerColumns";
+import type {
+  SearchCriterionDTO,
+  SearchRequestDTO,
+} from "../types/AdvancedSearchTypes";
+import { useAdvancedFileSearch } from "../hooks/useAdvancedFileSearch";
+import { AdvancedSearchModal } from "./AdvancedFileSearchModal";
 /**
  * Main File Manager component – combines folder tree navigation (left sidebar)
  * with paginated content view (right/main area) of the currently selected folder.
@@ -44,6 +50,13 @@ const FileManager = () => {
   const [innerSearchTerm, setInnerSearchTerm] = useState("");
   const [isSidebarVisible, setIsSideBarVisible] = useState(true);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
+  const [isAdvancedSearch, setIsAdvancedSearch] = useState(false);
+  const [isAdvancedSearchModalOpen, setIsAdvancedSearchModalOpen] =
+    useState(false);
+  const [searchCriteria, setSearchCriteria] = useState<SearchCriterionDTO[]>(
+    [],
+  );
+  const [advancedSearchInput, setAdvancedSearchInput] = useState("");
   const [selectedFileForVersions, setSelectedFileForVersions] =
     useState<FileItemDTO | null>(null);
   const [isStacked, setIsStacked] = useState(true);
@@ -112,6 +125,18 @@ const FileManager = () => {
     pageSize,
     innerSearchTerm,
   );
+  //Advanced Search Request
+  const {
+    data: searchResults,
+    isLoading: isSearchLoading,
+    refetch: refetchSearch,
+    isFetching: isSearchFetching,
+  } = useAdvancedFileSearch({
+    searchCriteria,
+    currentPage,
+    pageSize,
+    enabled: isAdvancedSearch,
+  });
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -124,7 +149,9 @@ const FileManager = () => {
     setInnerSearchTerm("");
     setFolderSearchText("");
   }, [selectedFolderId]);
-  const tableData = paginatedData?.items ?? [];
+  const tableData = isAdvancedSearch
+    ? (searchResults?.files ?? [])
+    : (paginatedData?.items ?? []);
   const uploadMutation = useUploadFile(selectedFolderId!, tableData);
   const uploadHandler = useCallback(
     (file: File) => {
@@ -142,6 +169,14 @@ const FileManager = () => {
     setNewName,
     deletingId,
   });
+  const openAdvancedSearch = () => setIsAdvancedSearchModalOpen(true);
+  const closeAdvancedSearch = () => setIsAdvancedSearchModalOpen(false);
+  const handleAdvancedSearchSubmit = (request: SearchRequestDTO) => {
+    setSearchCriteria(request.criteria);
+    setIsAdvancedSearch(true);
+    setCurrentPage(1);
+    setIsAdvancedSearchModalOpen(false);
+  };
   return (
     <div className="max-w-6xl mx-auto  p-6 bg-neutral-50 border border-slate-200 rounded-md shadow-md">
       <h2 className="text-2xl font-semibold mb-4">File Manager</h2>
@@ -180,6 +215,7 @@ const FileManager = () => {
               onFolderCreated={() => {
                 refetchFolderContent();
               }}
+              openAdvancedSearch={openAdvancedSearch}
             ></ActionSpacebar>
           </div>
           {/* VERSION HISTORY MODAL */}
@@ -304,6 +340,7 @@ const FileManager = () => {
                 onPressEnter={handleRenameSubmit}
               />
             </Modal>
+
             <FilePreviewModal
               previewUrl={previewUrl}
               previewType={previewType}
@@ -316,6 +353,13 @@ const FileManager = () => {
                 setPreviewType(null);
               }}
             />
+            {isAdvancedSearchModalOpen && (
+              <AdvancedSearchModal
+                visible={isAdvancedSearchModalOpen}
+                onClose={() => setIsAdvancedSearchModalOpen(false)}
+                onSearch={handleAdvancedSearchSubmit}
+              />
+            )}
           </Spin>
         </div>
       </div>

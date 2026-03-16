@@ -1,5 +1,6 @@
 import axios from "axios";
 import type { FileItemDTO, FolderContentDTO } from "../types/FileManagerTypes";
+import type { SearchRequestDTO } from "../types/AdvancedSearchTypes";
 
 const apiClient = axios.create({
   baseURL: "http://localhost:8080",
@@ -281,3 +282,13 @@ export const deleteFile = async (fileId: string): Promise<void> => {
 //   });
 //   return response.data;
 // };
+
+export const advancedFileSearch = async (
+  request: SearchRequestDTO,
+): Promise<FolderContentDTO> => {
+  const response = await apiClient.post<FolderContentDTO>(
+    "/api/search",
+    request,
+  );
+  return response.data;
+};

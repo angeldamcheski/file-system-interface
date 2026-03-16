@@ -6,6 +6,7 @@ import FileUploadButton from "./FileUploadButton";
 import { useState } from "react";
 import { Form, Input, message, Modal } from "antd";
 import { createFolder } from "../api/apiCall";
+import { SearchOutlined } from "@ant-design/icons";
 /**
  * ActionSpacebar Component
  * * A horizontal toolbar containing search functionality and file/folder action buttons.
@@ -25,6 +26,7 @@ const ActionSpacebar = ({
   isPending,
   selectedFolderId,
   onFolderCreated,
+  openAdvancedSearch,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [folderName, setFolderName] = useState("");
@@ -52,6 +54,14 @@ const ActionSpacebar = ({
           value={folderSearchText}
           className="hover:inset-shadow-sm/15 rounded-md transition-all duration-300 focus-within:bg-white focus-within:inset-shadow-sm/5  "
         />
+        <div className="w-px h-4 bg-slate-200" />
+        <Button
+          type="text"
+          icon={<SearchOutlined />}
+          onClick={openAdvancedSearch}
+        >
+          Advanced Search
+        </Button>
         <div className="w-px h-4 bg-slate-200" />
         <Button
           type="text"
