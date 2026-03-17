@@ -248,7 +248,9 @@ const FileManager = () => {
               pagination={{
                 current: currentPage,
                 pageSize: pageSize,
-                total: paginatedData?.totalItems,
+                total: isAdvancedSearch
+                  ? searchResults?.totalCount
+                  : paginatedData?.totalItems,
                 showSizeChanger: true,
 
                 placement: ["bottomCenter"],

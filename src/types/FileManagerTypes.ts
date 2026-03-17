@@ -8,4 +8,5 @@ export interface FileItemDTO {
 export interface FolderContentDTO {
   folders: FileItemDTO[];
   files: FileItemDTO[];
+  totalCount: number;
 }

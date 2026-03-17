@@ -25,7 +25,7 @@ export const useAdvancedFileSearch = ({
     queryFn: () => {
       if (!searchCriteria.length) {
         // return empty structure when no search criteria
-        return { folders: [], files: [] };
+        return { folders: [], files: [], totalCount: 0 };
       }
 
       const request: SearchRequestDTO = {
