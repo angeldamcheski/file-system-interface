@@ -137,7 +137,7 @@ const FileManager = () => {
     pageSize,
     enabled: isAdvancedSearch,
   });
-
+  console.log("SEARCH RESULTS", searchResults);
   useEffect(() => {
     const timeout = setTimeout(() => {
       setInnerSearchTerm(folderSearchText);
@@ -247,10 +247,8 @@ const FileManager = () => {
               columns={columns}
               pagination={{
                 current: currentPage,
-                pageSize: pageSize,
-                total: isAdvancedSearch
-                  ? searchResults?.totalCount
-                  : paginatedData?.totalItems,
+                pageSize: !isAdvancedSearch ? pageSize : 50,
+                total: paginatedData?.totalItems,
                 showSizeChanger: true,
 
                 placement: ["bottomCenter"],

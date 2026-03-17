@@ -7,6 +7,7 @@ import {
   FilePdfOutlined,
   CodeOutlined,
   FileTextOutlined,
+  PictureOutlined,
 } from "@ant-design/icons";
 import React from "react";
 import type TreeNode from "../types/TreeNode";
@@ -79,6 +80,11 @@ export const getFileIcon = (fileName?: string) => {
 
     case "json":
       return <CodeOutlined style={{ color: "#d97706", fontSize: "16px" }} />;
+
+    case "jpg":
+    case "png":
+    case "jpeg":
+      return <PictureOutlined style={{ color: "#dc2626", fontSize: "16px" }} />;
 
     case "txt":
       return <FileTextOutlined style={{ fontSize: "16px" }} />;

@@ -93,7 +93,7 @@ export const useFileManagerColumns = ({
             }}
           >
             {isFolder ? (
-              <FolderOutlined style={{ color: "#3b82f6" }} />
+              <FolderOutlined style={{ color: "#3b82f6", fontSize: "16px" }} />
             ) : (
               getFileIcon(record.name)
             )}

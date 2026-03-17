@@ -3,6 +3,7 @@ export interface FileItemDTO {
   name: string;
   type: "folder" | "file";
   modifiedDate?: string;
+  createdDate?: string;
 }
 
 export interface FolderContentDTO {

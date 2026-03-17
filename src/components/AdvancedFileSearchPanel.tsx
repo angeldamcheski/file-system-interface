@@ -155,6 +155,7 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
                       placeholder="Field"
                       loading={propsLoading}
                       options={propertyOptions}
+                      showSearch
                       style={{ width: 220 }}
                       onChange={(val) => {
                         // Find the selected property metadata to get the dataType
@@ -226,6 +227,7 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
                               showTime
                               style={{ width: 200 }}
                               placeholder="Select Date"
+                              needConfirm={false}
                             />
                           ) : (
                             <Input placeholder="Value" style={{ width: 200 }} />
