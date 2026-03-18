@@ -104,7 +104,14 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
         initialValues={{
           baseClassName: "Document",
           andSearch: "AND",
-          criteria: [{ property: "DocumentTitle", operator: "LIKE" }],
+          criteria: [
+            {
+              property: "DateLastModified",
+              operator: "GREATEROREQUAL",
+              value: dayjs().subtract(10, "days"),
+              dataType: "DATE",
+            },
+          ],
         }}
       >
         <Space size="large">

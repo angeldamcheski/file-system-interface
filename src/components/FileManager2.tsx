@@ -23,6 +23,7 @@ import type {
 } from "../types/AdvancedSearchTypes";
 import { useAdvancedFileSearch } from "../hooks/useAdvancedFileSearch";
 import { AdvancedSearchModal } from "./AdvancedFileSearchPanel";
+import { Navigate, useNavigate } from "react-router-dom";
 /**
  * Main File Manager component – combines folder tree navigation (left sidebar)
  * with paginated content view (right/main area) of the currently selected folder.
@@ -38,6 +39,7 @@ import { AdvancedSearchModal } from "./AdvancedFileSearchPanel";
  * - Integrates with FolderTreeContext for shared navigation state
  */
 const FileManager = () => {
+  const navigate = useNavigate();
   const {
     selectedFolderId,
     setSelectedFolderId,
@@ -169,7 +171,8 @@ const FileManager = () => {
     setNewName,
     deletingId,
   });
-  const openAdvancedSearch = () => setIsAdvancedSearchModalOpen(true);
+  // const openAdvancedSearch = () => setIsAdvancedSearchModalOpen(true);
+  const openAdvancedSearch = () => navigate("/search");
   const closeAdvancedSearch = () => setIsAdvancedSearchModalOpen(false);
   const handleAdvancedSearchSubmit = (request: SearchRequestDTO) => {
     setSearchCriteria(request.criteria);
