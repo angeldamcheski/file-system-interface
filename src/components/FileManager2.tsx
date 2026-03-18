@@ -23,7 +23,7 @@ import type {
 } from "../types/AdvancedSearchTypes";
 import { useAdvancedFileSearch } from "../hooks/useAdvancedFileSearch";
 import { AdvancedSearchModal } from "./AdvancedFileSearchPanel";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 /**
  * Main File Manager component – combines folder tree navigation (left sidebar)
  * with paginated content view (right/main area) of the currently selected folder.
@@ -181,7 +181,7 @@ const FileManager = () => {
     // setIsAdvancedSearchModalOpen(false);
   };
   return (
-    <div className="max-w-6xl mx-auto  p-6 bg-neutral-50 border border-slate-200 rounded-md shadow-md">
+    <div className="max-w-6xl mx-auto mt-5  p-6 bg-white border border-slate-300/50 rounded-md shadow-md">
       <h2 className="text-2xl font-semibold mb-4">File Manager</h2>
       <div
         className={`flex transition-all duration-500 ease-in-out border border-slate-200 rounded-md overflow-hidden  ${isStacked ? "flex-col" : "flex-col md:flex-row"}`}

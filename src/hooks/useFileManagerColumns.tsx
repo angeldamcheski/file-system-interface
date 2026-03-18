@@ -6,6 +6,7 @@ import {
   DeleteOutlined,
   HistoryOutlined,
   FolderOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import { getFileIcon, handleFileOpen } from "../utils/fileManagerUtils";
 interface ColumnProps {
@@ -38,7 +39,7 @@ export const useFileManagerColumns = ({
       {
         key: "open",
         label: isFolder ? "Open Folder" : "Preview File",
-        icon: isFolder ? <FolderOpenOutlined /> : <EditOutlined />,
+        icon: isFolder ? <FolderOpenOutlined /> : <EyeOutlined />,
         onClick: () => {
           if (isFolder) {
             setSelectedFolderId(record.id);

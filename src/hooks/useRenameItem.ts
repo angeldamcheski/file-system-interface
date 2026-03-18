@@ -23,6 +23,10 @@ export const useRenameItem = (selectedFolderId: string | null) => {
       queryClient.invalidateQueries({
         queryKey: ["paginated-folders"],
       });
+
+      queryClient.invalidateQueries({
+        queryKey: ["advancedFileSearch"],
+      });
     },
 
     onError: (error: any) => {

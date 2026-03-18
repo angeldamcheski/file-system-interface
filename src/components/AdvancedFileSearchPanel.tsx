@@ -80,22 +80,21 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
 
   return (
     <Card
-      title="Advanced File Search"
       open={visible}
       onCancel={onClose}
       onOk={() => form.submit()}
       width={850}
       okText="Search"
+      // bordered={false}
+      variant="borderless"
       destroyOnClose
-      extra={
-        <Button
-          type="text"
-          icon={<CloseOutlined />}
-          onClick={onClose}
-          className="hover:text-red-500"
-        />
-      }
-      style={{ marginTop: 20, borderRadius: 0, borderLeft: 0, borderRight: 0 }}
+      style={{
+        marginTop: 20,
+        borderRadius: 5,
+        borderLeft: 0,
+        borderRight: 0,
+        borderTop: 2,
+      }}
     >
       <Form
         form={form}
@@ -123,6 +122,7 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
             <Select
               options={classOptions}
               loading={classesLoading}
+              showSearch
               placeholder="Select Class"
             />
           </Form.Item>
@@ -194,6 +194,7 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
                       placeholder="Operator"
                       options={AVAILABLE_OPERATORS}
                       style={{ width: 160 }}
+                      showSearch
                     />
                   </Form.Item>
 
