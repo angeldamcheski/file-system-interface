@@ -50,6 +50,12 @@ export const useFileManagerColumns = ({
           }
         },
       },
+      !isFolder && {
+        key: "versions",
+        label: "View Versions",
+        icon: <HistoryOutlined />,
+        onClick: () => handleViewVersions(record),
+      },
       {
         key: "rename",
         label: "Rename",
@@ -68,7 +74,7 @@ export const useFileManagerColumns = ({
         disabled: isThisItemDeleting,
         onClick: () => confirmDelete(record),
       },
-    ];
+    ].filter(Boolean);
   };
   const columns = [
     {
