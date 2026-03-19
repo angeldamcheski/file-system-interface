@@ -94,7 +94,6 @@ const AdvancedSearchPage: React.FC = () => {
     setPreviewType(type);
     setPreviewFileName(name || null);
   };
-  console.log("SELECTED FILE FOR VERSIONS", selectedFileForVersions);
   return (
     <div className="max-w-7xl mx-auto p-6">
       <Card title="Advanced Document Discovery" className="shadow-md mb-6">
@@ -114,15 +113,16 @@ const AdvancedSearchPage: React.FC = () => {
           loading={isLoading || isFetching}
           rowKey="id"
           className="hover:cursor-pointer text-wrap"
-          pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            // total: searchResults,
-            // onChange: (page, size) => {
-            //   setCurrentPage(page);
-            //   setPageSize(size);
-            // },
-          }}
+          pagination={false}
+          // pagination={{
+          //   current: currentPage,
+          //   pageSize: pageSize,
+          //   // total: searchResults,
+          //   // onChange: (page, size) => {
+          //   //   setCurrentPage(page);
+          //   //   setPageSize(size);
+          //   // },
+          // }}
           components={{
             body: {
               row: (props: any) => {
