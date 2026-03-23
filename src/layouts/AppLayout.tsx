@@ -11,7 +11,7 @@ const AppLayout = () => {
   return (
     <Layout className="min-h-screen">
       <Header
-        className="flex items-center bg-white border-b border-slate-200 px-6"
+        className="flex! items-center! bg-white! border-b! border-slate-200! px-6"
         style={{ backgroundColor: "white" }}
       >
         <div className="text-xl font-bold mr-8 text-blue-600">Filenet</div>
@@ -19,17 +19,20 @@ const AppLayout = () => {
           mode="horizontal"
           defaultSelectedKeys={["1"]}
           selectedKeys={[selectedKey]}
-          className="flex-1 border-none"
+          className="flex-1! border-none!"
         >
-          <Menu.Item key="1" icon={<FolderOutlined />}>
+          <Menu.Item key="1" icon={<FolderOutlined className="text-[18px]!" />}>
             <Link to="/">File Manager</Link>
           </Menu.Item>
-          <Menu.Item key="2" icon={<FileSearchOutlined />}>
+          <Menu.Item
+            key="2"
+            icon={<FileSearchOutlined className="text-[18px]!" />}
+          >
             <Link to="/search">Advanced Search</Link>
           </Menu.Item>
         </Menu>
       </Header>
-      <Content className="bg-slate-50">
+      <Content className="bg-slate-50!">
         <Routes>
           <Route path="/" element={<FileManager2 />} />
           <Route path="/search" element={<AdvancedSearchPage />} />

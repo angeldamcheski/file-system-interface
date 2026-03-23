@@ -45,7 +45,7 @@ const ActionSpacebar = ({
   };
   return (
     <>
-      <Space className="border border-slate-200 rounded-md px-2 py-1 bg-white">
+      <Space className="border! border-slate-200! rounded-md! px-2! py-1 bg-white!">
         <Search
           placeholder="Search"
           variant="borderless"

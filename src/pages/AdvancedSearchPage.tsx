@@ -96,7 +96,7 @@ const AdvancedSearchPage: React.FC = () => {
   };
   return (
     <div className="max-w-7xl mx-auto p-6">
-      <Card title="Advanced Document Discovery" className="shadow-md mb-6">
+      <Card title="Advanced Document Discovery" className="shadow-md! mb-6!">
         <AdvancedSearchModal
           visible={true}
           onClose={() => {}}
@@ -106,7 +106,7 @@ const AdvancedSearchPage: React.FC = () => {
 
       <Divider>Search Results</Divider>
 
-      <Card className="shadow-md">
+      <Card className="shadow-md!">
         <Table
           dataSource={searchResults?.files || []}
           columns={columns}
