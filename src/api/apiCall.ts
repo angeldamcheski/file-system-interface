@@ -1,6 +1,7 @@
 import axios from "axios";
 import type { FileItemDTO, FolderContentDTO } from "../types/FileManagerTypes";
 import type { SearchRequestDTO } from "../types/AdvancedSearchTypes";
+import type { FileMetadataDTO } from "../types/FileMetadataType";
 
 const apiClient = axios.create({
   baseURL: "http://localhost:8080",
@@ -313,4 +314,11 @@ export const fetchClassProperties = async (
   );
   console.log("Class properties definitions", response.data);
   return response.data;
+};
+
+export const fetchFileMetadata = async (
+  fileId: string,
+): Promise<FileMetadataDTO> => {
+  const response = await apiClient.get(`files/${fileId}/metadata`);
+  const data = response.data;
 };
