@@ -23,6 +23,7 @@ export const useDeleteFolder = (selectedFolderId: string | null) => {
         queryKey: ["paginated-folders"],
       });
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       console.error("Delete error:", error);
       message.error(

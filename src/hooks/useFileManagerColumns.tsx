@@ -50,12 +50,14 @@ export const useFileManagerColumns = ({
           }
         },
       },
-      !isFolder && {
-        key: "versions",
-        label: "View Versions",
-        icon: <HistoryOutlined />,
-        onClick: () => handleViewVersions(record),
-      },
+      !isFolder
+        ? {
+            key: "versions",
+            label: "View Versions",
+            icon: <HistoryOutlined />,
+            onClick: () => handleViewVersions(record),
+          }
+        : null,
       {
         key: "rename",
         label: "Rename",
@@ -74,7 +76,7 @@ export const useFileManagerColumns = ({
         disabled: isThisItemDeleting,
         onClick: () => confirmDelete(record),
       },
-    ].filter(Boolean);
+    ].filter(Boolean) as MenuProps["items"];
   };
   const columns = [
     {
@@ -132,6 +134,7 @@ export const useFileManagerColumns = ({
       title: "Actions",
       key: "actions",
       width: 100,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       render: (_: any, record: FileItemDTO) => {
         const isFile = record.type === "file";
         const isThisItemDeleting = deletingId === record.id;

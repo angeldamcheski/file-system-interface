@@ -1,5 +1,5 @@
 import { Button } from "antd";
-import Upload from "antd/es/upload/Upload";
+import Upload, { type UploadProps } from "antd/es/upload/Upload";
 import UploadOutlined from "@ant-design/icons/UploadOutlined";
 /**
  * FileUploadButton Component
@@ -11,7 +11,14 @@ import UploadOutlined from "@ant-design/icons/UploadOutlined";
  * @param {boolean} isPending - Loading state used to disable the button and show a spinner.
  * @returns {React.ReactElement}
  */
-const FileUploadButton = ({ handleUpload, isPending }) => {
+type FileUploadButtonProps = {
+  handleUpload: UploadProps["beforeUpload"];
+  isPending: boolean;
+};
+const FileUploadButton = ({
+  handleUpload,
+  isPending,
+}: FileUploadButtonProps) => {
   return (
     <Upload beforeUpload={handleUpload} showUploadList={false} accept="*/*">
       <Button type="text" icon={<UploadOutlined />} loading={isPending}>

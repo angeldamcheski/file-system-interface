@@ -20,6 +20,7 @@ export const useRenameFolder = (selectedFolderId: string | null) => {
       });
       queryClient.invalidateQueries({ queryKey: ["paginated-folders"] });
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       const msg =
         error.response?.status === 409

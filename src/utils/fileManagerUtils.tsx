@@ -146,60 +146,60 @@ export const getBreadCrumbsPath = (
   return newPath === "root" ? "root" : newPath.replace("root/", "");
 };
 
-export const findNodeByPath = (
-  nodes: TreeNode[],
-  path: string,
-): TreeNode | null => {
-  for (const node of nodes) {
-    if (node.path === path) return node;
-    if (node.children) {
-      const found = findNodeByPath(node.children, path);
-      if (found) return found;
-    }
-  }
-  return null;
-};
+// export const findNodeByPath = (
+//   nodes: TreeNode[],
+//   path: string,
+// ): TreeNode | null => {
+//   for (const node of nodes) {
+//     if (node.path === path) return node;
+//     if (node.children) {
+//       const found = findNodeByPath(node.children, path);
+//       if (found) return found;
+//     }
+//   }
+//   return null;
+// };
 
-export const getParentChain = (
-  tree: TreeNode[],
-  targetId: string,
-): string[] => {
-  const map = new Map<string, TreeNode>();
+// export const getParentChain = (
+//   tree: TreeNode[],
+//   targetId: string,
+// ): string[] => {
+//   const map = new Map<string, TreeNode>();
 
-  const flatten = (nodes: TreeNode[]) => {
-    for (const node of nodes) {
-      map.set(node.key as string, node);
-      if (node.children) flatten(node.children);
-    }
-  };
+//   const flatten = (nodes: TreeNode[]) => {
+//     for (const node of nodes) {
+//       map.set(node.key as string, node);
+//       if (node.children) flatten(node.children);
+//     }
+//   };
 
-  flatten(tree);
+//   flatten(tree);
 
-  const keys: string[] = [];
-  let current = map.get(targetId);
+//   const keys: string[] = [];
+//   let current = map.get(targetId);
 
-  while (current) {
-    keys.unshift(current.key as string);
-    if (!current.parentId) break;
-    current = map.get(current.parentId);
-  }
+//   while (current) {
+//     keys.unshift(current.key as string);
+//     if (!current.parentId) break;
+//     current = map.get(current.parentId);
+//   }
 
-  return keys;
-};
-export const getFolderPopOverContent = (
-  folderName: string,
-  folderPath: string,
-) => (
-  <div className="p-1">
-    <p>
-      <strong>{folderPath}</strong>
-      {}
-    </p>
-    <p className="text-xs text-gray-500">
-      Click to view contents of {folderName} in {folderPath}
-    </p>
-  </div>
-);
+//   return keys;
+// };
+// export const getFolderPopOverContent = (
+//   folderName: string,
+//   folderPath: string,
+// ) => (
+//   <div className="p-1">
+//     <p>
+//       <strong>{folderPath}</strong>
+//       {}
+//     </p>
+//     <p className="text-xs text-gray-500">
+//       Click to view contents of {folderName} in {folderPath}
+//     </p>
+//   </div>
+// );
 
 export const handleFileOpen = async (
   file: FileItemDTO,
@@ -238,35 +238,35 @@ export const handleFileOpen = async (
 };
 
 //Legacy - Used for dummy data
-export const buildTree = (path: string): TreeNode[] => {
-  const data = fileSystem[path];
-  if (!data) return [];
+// export const buildTree = (path: string): TreeNode[] => {
+//   const data = fileSystem[path];
+//   if (!data) return [];
 
-  return [
-    {
-      title: (
-        <Popover
-          title="Folder info"
-          placement="right"
-          mouseEnterDelay={0.5}
-          content={getFolderPopOverContent(
-            path === "root" ? "Root" : (path.split("/").pop() ?? "Folder"),
-          )}
-        >
-          <span>{path === "root" ? "Root" : path.split("/").pop()}</span>
-        </Popover>
-      ),
-      key: path,
-      path: path,
-      icon: getFolderIcon(path === "root" ? undefined : "documents"),
-      children: data.folders.map(
-        (folder: { name: string; folderType: string }) => {
-          const childPath =
-            path === "root" ? folder.name : `${path}/${folder.name}`;
-          const node = buildTree(childPath)[0];
-          return { ...node, icon: getFolderIcon(folder.folderType) };
-        },
-      ),
-    },
-  ];
-};
+//   return [
+//     {
+//       title: (
+//         <Popover
+//           title="Folder info"
+//           placement="right"
+//           mouseEnterDelay={0.5}
+//           content={getFolderPopOverContent(
+//             path === "root" ? "Root" : (path.split("/").pop() ?? "Folder"),
+//           )}
+//         >
+//           <span>{path === "root" ? "Root" : path.split("/").pop()}</span>
+//         </Popover>
+//       ),
+//       key: path,
+//       path: path,
+//       icon: getFolderIcon(path === "root" ? undefined : "documents"),
+//       children: data.folders.map(
+//         (folder: { name: string; folderType: string }) => {
+//           const childPath =
+//             path === "root" ? folder.name : `${path}/${folder.name}`;
+//           const node = buildTree(childPath)[0];
+//           return { ...node, icon: getFolderIcon(folder.folderType) };
+//         },
+//       ),
+//     },
+//   ];
+// };

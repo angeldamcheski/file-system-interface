@@ -1,5 +1,6 @@
 import { Table, Modal, Button, Tooltip } from "antd";
 import { handleFileOpen } from "../utils/fileManagerUtils";
+import type { FileItemDTO } from "../types/FileManagerTypes";
 /**
  * VersionHistoryModal Component
  * * Displays a table of previous file versions, showing modification dates,
@@ -13,6 +14,15 @@ import { handleFileOpen } from "../utils/fileManagerUtils";
  * @param {Function} openPreview - Callback to trigger the FilePreviewModal for a specific version.
  * @returns {React.ReactElement}
  */
+
+type VersionHistoryModalProps = {
+  open: boolean;
+  onClose: () => void;
+  versions: FileItemDTO[];
+  loading: boolean;
+  openPreview: (url: string, type: string, name?: string) => void;
+  fileName?: string;
+};
 export const VersionHistoryModal = ({
   open,
   onClose,
@@ -20,7 +30,7 @@ export const VersionHistoryModal = ({
   loading,
   openPreview,
   fileName,
-}) => {
+}: VersionHistoryModalProps) => {
   return (
     <Modal
       open={open}
@@ -76,7 +86,11 @@ export const VersionHistoryModal = ({
               <Tooltip title="View version history" placement="top">
                 <Button
                   type="link"
-                  onClick={() => handleFileOpen(record, openPreview)}
+                  onClick={() =>
+                    handleFileOpen(record, (url, type) =>
+                      openPreview(url, type, record.name),
+                    )
+                  }
                 >
                   Preview
                 </Button>

@@ -9,7 +9,19 @@ import { Modal } from "antd";
  * @param {Function} onClose - Callback function to close the modal and cleanup resources (e.g., revokeObjectURL).
  * @returns {React.ReactElement}
  */
-const FilePreviewModal = ({ previewUrl, previewType, onClose, fileName }) => {
+type FilePreviewModalProps = {
+  previewUrl: string | null;
+  previewType: string | null;
+  onClose: () => void;
+  fileName?: string; // optional (safe in case it's missing)
+};
+
+const FilePreviewModal = ({
+  previewUrl,
+  previewType,
+  onClose,
+  fileName,
+}: FilePreviewModalProps) => {
   return (
     <Modal
       open={!!previewUrl}
@@ -29,7 +41,7 @@ const FilePreviewModal = ({ previewUrl, previewType, onClose, fileName }) => {
       }}
       zIndex={2000}
     >
-      {previewType?.startsWith("image/") && (
+      {previewUrl && previewType?.startsWith("image/") && (
         <img
           src={previewUrl}
           alt={previewUrl}
@@ -41,7 +53,7 @@ const FilePreviewModal = ({ previewUrl, previewType, onClose, fileName }) => {
           }}
         />
       )}
-      {previewType === "application/pdf" && (
+      {previewUrl && previewType === "application/pdf" && (
         <iframe
           src={previewUrl}
           title="PDF Preview"
@@ -50,7 +62,7 @@ const FilePreviewModal = ({ previewUrl, previewType, onClose, fileName }) => {
           className="rounded-md shadow-lg"
         />
       )}
-      {previewType === "text/plain" && (
+      {previewUrl && previewType === "text/plain" && (
         <iframe
           src={previewUrl}
           title="Text Preview"

@@ -30,6 +30,7 @@ export const useUploadFile = (
       });
     },
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any, variables) => {
       if (error.response?.status === 409) {
         const existingFile = tableData.find(

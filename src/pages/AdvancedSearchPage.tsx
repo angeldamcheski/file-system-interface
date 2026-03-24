@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Table, Spin, Card, Divider, Dropdown, Modal, Input } from "antd";
 import dayjs from "dayjs";
-import { AdvancedSearchModal } from "../components/AdvancedFileSearchPanel"; // Reusing your form component
+import { AdvancedSearchModal } from "../components/AdvancedFileSearchPanel"; // Reusing form component
 import { useAdvancedFileSearch } from "../hooks/useAdvancedFileSearch";
 import { useFileManagerColumns } from "../hooks/useFileManagerColumns";
 import FilePreviewModal from "../components/FilePreviewModal";
@@ -19,7 +19,7 @@ import { handleFileOpen } from "../utils/fileManagerUtils";
 
 const AdvancedSearchPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize] = useState(50);
   const [renamingFile, setRenamingFile] = useState<FileItemDTO | null>(null);
   const [newName, setNewName] = useState("");
   // Default criteria: Last 10 days
@@ -80,6 +80,7 @@ const AdvancedSearchPage: React.FC = () => {
     setRenamingFolder: setRenamingFile,
     setNewName,
     deletingId,
+    isDeleting: !!deletingId,
   });
   const handleRenameSubmit = () => {
     if (!renamingFile || !newName.trim()) return;
@@ -125,6 +126,7 @@ const AdvancedSearchPage: React.FC = () => {
           // }}
           components={{
             body: {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               row: (props: any) => {
                 const rowId = props["data-row-key"];
                 const isDeleting = deletingId === rowId;
@@ -213,7 +215,7 @@ const AdvancedSearchPage: React.FC = () => {
       <FilePreviewModal
         previewUrl={previewUrl}
         previewType={previewType}
-        fileName={previewFileName}
+        fileName={previewFileName ?? undefined}
         onClose={() => {
           if (previewUrl) {
             window.URL.revokeObjectURL(previewUrl);

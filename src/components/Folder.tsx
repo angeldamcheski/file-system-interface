@@ -95,7 +95,7 @@ const Folder = ({
 
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [innerSearchTerm, setInnerSearchTerm] = useState("");
-  const [discoveredFolders, setDiscoveredFolders] = useState<FileItemDTO[]>([]);
+  // const [discoveredFolders, setDiscoveredFolders] = useState<FileItemDTO[]>([]);
   const {
     data,
     isLoading,
@@ -128,6 +128,7 @@ const Folder = ({
         addDiscoveredFolders(folderId, allFetched);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, folderId]);
   const currentBreadcrumbs = useMemo(() => {
     return [

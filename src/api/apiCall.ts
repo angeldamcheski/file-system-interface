@@ -321,4 +321,5 @@ export const fetchFileMetadata = async (
 ): Promise<FileMetadataDTO> => {
   const response = await apiClient.get(`files/${fileId}/metadata`);
   const data = response.data;
+  return data;
 };

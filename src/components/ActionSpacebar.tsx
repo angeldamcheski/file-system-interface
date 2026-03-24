@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Form, Input, message, Modal } from "antd";
 import { createFolder } from "../api/apiCall";
 import { FileSearchOutlined } from "@ant-design/icons";
+import type { FileItemDTO } from "../types/FileManagerTypes";
 /**
  * ActionSpacebar Component
  * * A horizontal toolbar containing search functionality and file/folder action buttons.
@@ -19,6 +20,17 @@ import { FileSearchOutlined } from "@ant-design/icons";
  * @param {boolean} isPending - Indicates if a file upload mutation is currently in progress.
  * @returns {React.ReactElement}
  */
+
+type ActionSpacebarProps = {
+  setFolderSearchText: (value: string) => void;
+  folderSearchText: string;
+  handleUpload: (file: File) => void; // adjust if different
+  isPending: boolean;
+  selectedFolderId: string | null;
+  onFolderCreated?: (folder: FileItemDTO) => void;
+  openAdvancedSearch: () => void;
+};
+
 const ActionSpacebar = ({
   setFolderSearchText,
   folderSearchText,
@@ -27,7 +39,7 @@ const ActionSpacebar = ({
   selectedFolderId,
   onFolderCreated,
   openAdvancedSearch,
-}) => {
+}: ActionSpacebarProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [folderName, setFolderName] = useState("");
   const handleCreateFolder = async () => {
@@ -39,6 +51,7 @@ const ActionSpacebar = ({
       if (onFolderCreated) {
         onFolderCreated(newFolder);
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       message.error("Failed to create a folder: " + err.message);
     }

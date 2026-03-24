@@ -1,20 +1,16 @@
-// import React, { useEffect } from "react";
 import {
-  Modal,
   Form,
   Select,
   Input,
   Button,
   Space,
   Divider,
-  Spin,
   Card,
   DatePicker,
 } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
-  CloseOutlined,
   SearchOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
@@ -35,7 +31,6 @@ interface AdvancedSearchModalProps {
 
 export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
   visible,
-  onClose,
   onSearch,
 }) => {
   const [form] = Form.useForm();
@@ -57,11 +52,13 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
     enabled: visible && !!selectedClass,
   });
   console.log("Property options", propertyOptions);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleFinish = (values: any) => {
     const request: SearchRequestDTO = {
       baseClassName: values.baseClassName,
       searchSubclasses: true,
       andSearch: values.andSearch === "AND",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       criteria: values.criteria.map((c: any): SearchCriterionDTO => {
         let formattedValue = c.value;
         if (dayjs.isDayjs(c.value)) {
@@ -80,14 +77,8 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
 
   return (
     <Card
-      open={visible}
-      onCancel={onClose}
-      onOk={() => form.submit()}
-      width={850}
-      okText="Search"
       // bordered={false}
       variant="borderless"
-      destroyOnClose
       style={{
         marginTop: 20,
         borderRadius: 5,
@@ -192,8 +183,7 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({
                   >
                     <Select
                       placeholder="Operator"
-                      options={AVAILABLE_OPERATORS}
-                      style={{ width: 160 }}
+                      options={[...AVAILABLE_OPERATORS]}
                       showSearch
                     />
                   </Form.Item>

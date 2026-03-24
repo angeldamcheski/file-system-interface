@@ -50,7 +50,7 @@ const FileManager = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [innerSearchTerm, setInnerSearchTerm] = useState("");
-  const [isSidebarVisible, setIsSideBarVisible] = useState(true);
+  const [isSidebarVisible] = useState(true);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
   const [isAdvancedSearch, setIsAdvancedSearch] = useState(false);
   const [isAdvancedSearchModalOpen, setIsAdvancedSearchModalOpen] =
@@ -58,10 +58,9 @@ const FileManager = () => {
   const [searchCriteria, setSearchCriteria] = useState<SearchCriterionDTO[]>(
     [],
   );
-  const [advancedSearchInput, setAdvancedSearchInput] = useState("");
   const [selectedFileForVersions, setSelectedFileForVersions] =
     useState<FileItemDTO | null>(null);
-  const [isStacked, setIsStacked] = useState(true);
+  const [isStacked] = useState(true);
   const [renamingFolder, setRenamingFolder] = useState<FileItemDTO | null>(
     null,
   );
@@ -128,12 +127,7 @@ const FileManager = () => {
     innerSearchTerm,
   );
   //Advanced Search Request
-  const {
-    data: searchResults,
-    isLoading: isSearchLoading,
-    refetch: refetchSearch,
-    isFetching: isSearchFetching,
-  } = useAdvancedFileSearch({
+  const { data: searchResults } = useAdvancedFileSearch({
     searchCriteria,
     currentPage,
     pageSize,
@@ -150,6 +144,7 @@ const FileManager = () => {
   useEffect(() => {
     setInnerSearchTerm("");
     setFolderSearchText("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFolderId]);
   const tableData = isAdvancedSearch
     ? (searchResults?.files ?? [])
@@ -170,10 +165,10 @@ const FileManager = () => {
     setRenamingFolder,
     setNewName,
     deletingId,
+    isDeleting: !!deletingId,
   });
   // const openAdvancedSearch = () => setIsAdvancedSearchModalOpen(true);
   const openAdvancedSearch = () => navigate("/search");
-  const closeAdvancedSearch = () => setIsAdvancedSearchModalOpen(false);
   const handleAdvancedSearchSubmit = (request: SearchRequestDTO) => {
     setSearchCriteria(request.criteria);
     setIsAdvancedSearch(true);
@@ -271,10 +266,13 @@ const FileManager = () => {
               }}
               components={{
                 body: {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   row: (props: any) => {
                     const rowId = props["data-row-key"];
                     const isDeleting = deletingId === rowId;
-                    const record = tableData.find((i) => i.id === rowId);
+                    const record = tableData.find(
+                      (i: FileItemDTO) => i.id === rowId,
+                    );
 
                     // Define row structure with loading overlay
                     const rowContent = (
@@ -357,7 +355,7 @@ const FileManager = () => {
             <FilePreviewModal
               previewUrl={previewUrl}
               previewType={previewType}
-              fileName={previewFileName}
+              fileName={previewFileName ?? undefined}
               onClose={() => {
                 if (previewUrl) {
                   window.URL.revokeObjectURL(previewUrl);
