@@ -18,7 +18,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <FolderTreeProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={import.meta.env.VITE_CONTEXT_PATH}>
           <AppLayout />
         </BrowserRouter>
       </FolderTreeProvider>

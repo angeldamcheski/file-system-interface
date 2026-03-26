@@ -4,7 +4,7 @@ import type { SearchRequestDTO } from "../types/AdvancedSearchTypes";
 import type { FileMetadataDTO } from "../types/FileMetadataType";
 
 const apiClient = axios.create({
-  baseURL: "http://localhost:8080",
+  baseURL: import.meta.env.VITE_DATABASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -288,7 +288,7 @@ export const advancedFileSearch = async (
   request: SearchRequestDTO,
 ): Promise<FolderContentDTO> => {
   const response = await apiClient.post<FolderContentDTO>(
-    "/api/search",
+    "/search",
     request,
   );
   return response.data;
@@ -300,7 +300,7 @@ export const fetchFileNetClasses = async (): Promise<
     value: string;
   }[]
 > => {
-  const response = await apiClient.get("/api/search/classes");
+  const response = await apiClient.get("/search/classes");
   return response.data;
 };
 
@@ -310,7 +310,7 @@ export const fetchClassProperties = async (
   { value: string; label: string; dataType: string; isSearchable: boolean }[]
 > => {
   const response = await apiClient.get(
-    `/api/search/classes/${className}/properties`,
+    `/search/classes/${className}/properties`,
   );
   console.log("Class properties definitions", response.data);
   return response.data;
